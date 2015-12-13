@@ -1,7 +1,11 @@
 
 class SantaFloor
+  UP = '('
+  DOWN = ')'
+
   def initialize(input)
     @input = input
+    validate_input
   end
 
   def final_floor
@@ -16,15 +20,23 @@ class SantaFloor
   attr_reader :input
 
   def floors
-    input.chars.reduce([0]) do |floors, char|
-      case char
-      when '('
-        floors << floors.last + 1
-      when ')'
-        floors << floors.last - 1
-      else
-        fail 'Bad input, all chars must be ( or )'
-      end
+    input.chars.reduce([0]) do |floors, direction|
+      move(floors, direction)
+    end
+  end
+
+  def move(floors, direction)
+    case direction
+    when UP
+      floors << floors.last + 1
+    when DOWN
+      floors << floors.last - 1
+    end
+  end
+
+  def validate_input
+    unless input.delete('()').empty?
+      fail 'Bad input. All characters must be ( or ).'
     end
   end
 end
