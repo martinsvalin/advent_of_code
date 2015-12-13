@@ -8,6 +8,10 @@ class SantaFloor
     floors.last
   end
 
+  def basement_reached
+    floors.index(-1)
+  end
+
   private
   attr_reader :input
 
@@ -28,3 +32,4 @@ end
 input = File.read('../input.txt').chomp
 santa_floor = SantaFloor.new(input)
 puts "Santa goes to floor #{santa_floor.final_floor}"
+puts "Santa reaches the basement after #{santa_floor.basement_reached} moves"
