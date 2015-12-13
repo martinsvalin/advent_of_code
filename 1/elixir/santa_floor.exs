@@ -1,13 +1,33 @@
-{:ok, input} = File.read "../input.txt"
+defmodule SantaFloor do
+  @external_resource "../input.txt"
 
-count = fn list, char ->
-  Enum.count(list, &(&1 == <<char>>))
+  def final_floor, do: hd floors
+
+  def basement_reached do
+    {_, index} = floors
+    |> Enum.reverse
+    |> Enum.with_index
+    |> Enum.find(fn {floor, _index} -> floor == -1 end)
+    index
+  end
+
+  defp input do
+    {:ok, content} = File.read(@external_resource)
+    content
+  end
+
+  defp floors do
+    input
+    |> String.codepoints
+    |> Enum.reduce([0], fn(codepoint, [current | _tail] = floors) ->
+      case codepoint do
+        "(" -> [current + 1 | floors]
+        ")" -> [current - 1 | floors]
+        _   -> floors
+      end
+    end)
+  end
 end
 
-count_ups_and_downs = &( {count.(&1, ?(), count.(&1, ?))} )
-
-{up, down} = input
-|> String.codepoints
-|> count_ups_and_downs.()
-
-IO.puts "Santa is going to floor #{up - down}"
+IO.puts "Santa is going to floor #{SantaFloor.final_floor}"
+IO.puts "Santa reaches the basement after #{SantaFloor.basement_reached} moves"
