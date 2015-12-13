@@ -5,18 +5,23 @@ class SantaFloor
   end
 
   def final_floor
-    up - down
+    floors.last
   end
 
   private
   attr_reader :input
 
-  def up
-    input.count ?(
-  end
-
-  def down
-    input.count ?)
+  def floors
+    input.chars.reduce([0]) do |floors, char|
+      case char
+      when '('
+        floors << floors.last + 1
+      when ')'
+        floors << floors.last - 1
+      else
+        fail 'Bad input, all chars must be ( or )'
+      end
+    end
   end
 end
 
