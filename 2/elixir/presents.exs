@@ -5,6 +5,12 @@ defmodule Presents do
     |> Enum.sum
   end
 
+  def ribbon do
+    presents
+    |> Enum.map(&ribbon/1)
+    |> Enum.sum
+  end
+
   defp presents do
     input
     |> String.split
@@ -32,6 +38,16 @@ defmodule Presents do
 
   defp sides([w,h,l]) do
     [w*h, h*w, w*l, l*w, l*h, h*l]
+  end
+
+  defp ribbon(present) do
+    present
+    |> perimeters
+    |> Enum.min
+  end
+
+  defp perimeters([w,h,l]) do
+    [2*w + 2*h, 2*w + 2*l, 2*h + 2*l]
   end
 end
 
