@@ -1,22 +1,30 @@
-
+##
+# This class calculates which floor Santa is on, given instructions
+# in the form of a string of ( or ), where ( means Santa ascends one
+# floor, and ) means Santa descends one floor.
 class SantaFloor
   UP = '('
   DOWN = ')'
 
+  # Input must be in the form of a string of ( and ) characters.
   def initialize(input)
     @input = input
-    validate_input
+    fail 'Bad input. All characters must be ( or ).' unless valid_input?
   end
 
+  # Calculates the floor Santa ends up at, after following all instructions.
   def final_floor
     floors.last
   end
 
+  # Calculates how many instructions Santa follows before finding himself
+  # in the basement (floor -1).
   def basement_reached
     floors.index(-1)
   end
 
   private
+
   attr_reader :input
 
   def floors
@@ -34,10 +42,8 @@ class SantaFloor
     end
   end
 
-  def validate_input
-    unless input.delete('()').empty?
-      fail 'Bad input. All characters must be ( or ).'
-    end
+  def valid_input?
+    input.delete('()').empty?
   end
 end
 
