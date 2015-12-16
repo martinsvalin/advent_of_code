@@ -24,7 +24,8 @@ defmodule Answer do
     |> Enum.count
   end
 
-  def part2(_input) do
+  def part2(input) do
+    part1(input)
   end
 
   def check(:part1, input, expected), do: assert(Answer.part1(input), expected)
@@ -44,3 +45,9 @@ Answer.check :part1, "^v^v^v^v^v", 2
 
 {:ok, input} = File.read("../input.txt")
 IO.puts "Santa delivers at least one present to #{Answer.part1(input)} houses."
+
+Answer.check :part2, "^v", 3
+Answer.check :part2, "^>v<", 3
+Answer.check :part2, "^v^v^v^v^v", 11
+
+IO.puts "Next year, Santa and Robo-Santa deliver to #{Answer.part2(input)} houses."
