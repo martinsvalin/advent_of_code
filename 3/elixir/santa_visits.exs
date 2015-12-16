@@ -27,10 +27,13 @@ defmodule Answer do
   def part2(_input) do
   end
 
-  def check(:part1, input, expected) do
-    case Answer.part1(input) do
+  def check(:part1, input, expected), do: assert(Answer.part1(input), expected)
+  def check(:part2, input, expected), do: assert(Answer.part2(input), expected)
+
+  defp assert(actual, expected) do
+    case actual do
       ^expected -> :ok
-      actual ->  raise "Wrong answer. Expected #{expected}, got #{actual}"
+      _ ->  raise "Wrong answer. Expected #{expected}, got #{actual}"
     end
   end
 end
