@@ -52,9 +52,9 @@ defmodule Answer do
   input.
 
   ## Examples
-      iex> Answer.check :part1, '^v', 2
+      iex> Answer.check :part1, "^v", 2
       :ok
-      iex> Answer.check :part2, '^v', 2
+      iex> Answer.check :part2, "^v", 2
       ** (RuntimeError) Wrong answer. Expected 2, got 3
   """
   def check(:part1, input, expected), do: assert(Answer.part1(input), expected)
