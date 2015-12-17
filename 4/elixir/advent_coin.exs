@@ -45,40 +45,25 @@ defmodule AdventCoin do
 end
 
 defmodule Answer do
-  @doc """
-  Check that our solution is correct by asserting against known answers to given
-  input.
-
-  ## Examples
-      iex> Answer.check :part1, "abcdef", 609_043
-      :ok
-      iex> Answer.check :part1, "pqrstuv", 1_048_970
-      :ok
-      iex> Answer.check :part2, "abcdef", 609_043
-      :ok
-      ** (RuntimeError) Wrong answer. Expected 609043, got 6742839
-  """
+  @doc "Check solution against known answers to given input."
   def check(:part1, input, expected), do: assert(AdventCoin.mine(input, 5), expected)
   def check(:part2, input, expected), do: assert(AdventCoin.mine(input, 6), expected)
 
-  defp assert(actual, expected) do
-    case actual do
-      ^expected -> :ok
-      _ ->  raise "Wrong answer. Expected #{expected}, got #{actual}"
-    end
-  end
+  defp assert(equal, equal), do: :ok
+  defp assert(actual, expected), do: raise "Wrong answer. Expected #{expected}, got #{actual}"
 end
 
-tasks = [
+checks = [
   Task.async(fn -> Answer.check :part1, "abcdef", 609_043 end),
   Task.async(fn -> Answer.check :part1, "pqrstuv", 1_048_970 end)
 ]
 
 my_key = "yzbqklnj"
 part1 = Task.async(fn -> AdventCoin.mine(my_key, 5) end) |> Task.await
-part2 = Task.async(fn -> AdventCoin.mine(my_key, 6) end) |> Task.await(50_000)
 IO.puts "AdventCoin with five leading zeroes found at #{part1} for #{my_key}."
+
+part2 = Task.async(fn -> AdventCoin.mine(my_key, 6) end) |> Task.await(50_000)
 IO.puts "AdventCoin with six leading zeroes found at #{part2} for #{my_key}."
 
-tasks |> Enum.map(&Task.await/1)
+checks |> Enum.map(&Task.await/1)
 IO.puts "Checks pass"
