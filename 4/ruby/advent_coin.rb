@@ -45,13 +45,8 @@ end
 check 'abcdef', 609_043
 check 'pqrstuv', 1_048_970
 
-MY_KEY = 'yzbqklnj'
-puts %(
-The lowest possible number for #{MY_KEY} with five zeros leading the digest \
-is #{AdventCoin.mine(MY_KEY)}.
-)
-
-puts %(
-The lowest possible number for #{MY_KEY} with six zeroes leading the digest \
-is #{AdventCoin.mine(MY_KEY, 6)}
-)
+my_key = 'yzbqklnj'
+part1 = AdventCoin.mine(my_key, 5)
+part2 = AdventCoin.mine(my_key, 6)
+puts "AdventCoin with five leading zeroes found at #{part1} for #{my_key}."
+puts "AdventCoin with six leading zeroes found at #{part2} for #{my_key}."
