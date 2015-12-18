@@ -19,13 +19,11 @@ defmodule AdventCoin do
   def mine(key, prefix_size \\ 5) do
     key
     |> candidates
-    |> Enum.find(fn candidate -> bingo(candidate, prefix_size) end)
-    |> elem(0)
+    |> Enum.find_value(fn candidate -> bingo(candidate, prefix_size) end)
   end
 
-  defp bingo({_n, digest}, prefix_size) do
-    digest
-    |> String.starts_with?(String.duplicate("0", prefix_size))
+  defp bingo({n, digest}, prefix_size) do
+    if String.starts_with?(digest, String.duplicate("0", prefix_size)), do: n
   end
 
   defp candidates(key) do
