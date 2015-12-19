@@ -56,12 +56,12 @@ checks = [
   Task.async(fn -> Answer.check :part1, "pqrstuv", 1_048_970 end)
 ]
 
-my_key = "yzbqklnj"
-part1 = Task.async(fn -> AdventCoin.mine(my_key, 5) end) |> Task.await
-IO.puts "AdventCoin with five leading zeroes found at #{part1} for #{my_key}."
+@key "yzbqklnj"
+part1 = Task.async(fn -> AdventCoin.mine(@key, 5) end) |> Task.await
+IO.puts "AdventCoin with five leading zeroes found at #{part1} for #{@key}."
 
-part2 = Task.async(fn -> AdventCoin.mine(my_key, 6) end) |> Task.await(50_000)
-IO.puts "AdventCoin with six leading zeroes found at #{part2} for #{my_key}."
+part2 = Task.async(fn -> AdventCoin.mine(@key, 6) end) |> Task.await(50_000)
+IO.puts "AdventCoin with six leading zeroes found at #{part2} for #{@key}."
 
 checks |> Enum.map(&Task.await/1)
 IO.puts "Checks pass"
