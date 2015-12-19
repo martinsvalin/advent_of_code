@@ -44,8 +44,23 @@ defmodule Answer do
   either at least once.
   """
   def part2(input) do
-    part1(input)
+    {santa, robo} = input
+      |> String.codepoints
+      |> two_instruction_sets
+
+    (SantaVisits.visited(santa) ++ SantaVisits.visited(robo))
+    |> Enum.uniq
+    |> Enum.count
   end
+
+  defp two_instruction_sets(instructions) do
+    {santas, robos} = instructions
+      |> Enum.with_index
+      |> Enum.partition(fn {instruction, index} -> rem(index, 2) == 0 end)
+    {santas |> without_index, robos |> without_index}
+  end
+
+  defp without_index(list), do: list |> Enum.map(fn {val, i} -> val end)
 
   @doc """
   Check that our solution is correct by asserting against known answers to given
