@@ -4,11 +4,10 @@ defmodule SantaFloor do
   def final_floor, do: hd floors
 
   def basement_reached do
-    {_, index} = floors
+    floors
     |> Enum.reverse
     |> Enum.with_index
-    |> Enum.find(fn {floor, _index} -> floor == -1 end)
-    index
+    |> Enum.find_value(fn {floor, index} -> floor == -1 && index end)
   end
 
   defp input do
