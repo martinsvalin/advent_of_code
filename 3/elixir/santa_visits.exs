@@ -72,7 +72,7 @@ Answer.check :part1, ">", 2
 Answer.check :part1, "^>v<", 4
 Answer.check :part1, "^v^v^v^v^v", 2
 
-{:ok, input} = File.read("../input.txt")
+{:ok, input} = File.read("#{__DIR__}/../input.txt")
 IO.puts "Santa delivers at least one present to #{Answer.part1(input)} houses."
 
 Answer.check :part2, "^v", 3

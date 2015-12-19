@@ -17,7 +17,7 @@ defmodule Presents do
     |> Enum.map(&dimensions/1)
   end
 
-  @external_resource "../input.txt"
+  @external_resource "#{__DIR__}/../input.txt"
 
   defp input do
     {:ok, content} = File.read(@external_resource)

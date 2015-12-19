@@ -1,5 +1,5 @@
 defmodule SantaFloor do
-  @external_resource "../input.txt"
+  @external_resource "#{__DIR__}/../input.txt"
 
   def final_floor, do: hd floors
 
