@@ -6,25 +6,23 @@ require 'matrix'
 #   "turn off 499,499 through 500,500" # => turn off centre square
 #   "toggle 0,0 through 999,0"         # => toggle first row of lights
 class Lights
-  COORDINATES_REGEX = /(?<from_x>\d+),(?<from_y>\d+) through (?<to_x>\d+),(?<to_y>\d+)$/
-
   def self.count(instructions)
     new(instructions).follow_instructions.count
   end
 
   def initialize(instructions)
-    @grid = BitGrid.new size: 1000
+    @bit_grid = BitGrid.new size: 1000
     @instructions = instructions.map { |i| Instruction.new(i) }
   end
 
   def follow_instructions
-    @grid = @instructions.reduce(@grid) do |grid, instruction|
-      instruction.perform_on(grid)
+    @bit_grid = @instructions.reduce(@bit_grid) do |bit_grid, instruction|
+      instruction.perform_on(bit_grid)
     end
   end
 
   def count
-    @grid.count
+    @bit_grid.count
   end
 end
 
@@ -76,6 +74,7 @@ end
 # of the lower left and upper right corners of a region.
 class BitGrid
   def initialize(size: 5)
+    @grid = 0
     @size = size
   end
 
@@ -85,14 +84,17 @@ class BitGrid
 
   def turn_on(from, to)
     @grid |= region(from, to)
+    self
   end
 
   def turn_off(from, to)
     @grid &= ~region(from, to)
+    self
   end
 
   def toggle(from, to)
     @grid ^= region(from, to)
+    self
   end
 
   def to_s
@@ -110,11 +112,19 @@ class BitGrid
     from_x, from_y = from
     to_x, to_y = to
 
-    (from_x..to_x).reduce(0) do |total, row|
-      total + (from_y..to_y).reduce(0) do |line, col|
-        line + 2**(col + row * @size)
-      end
-    end
+    row = (from_x..to_x)
+          .map { 1 }
+          .join
+          .ljust(@size - from_x, '0')
+          .rjust(@size, '0')
+
+    rows = (from_y..to_y)
+           .map { row }
+           .join
+
+    bottom_padding = '0' * (@size * (@size - to_y - 1))
+
+    (rows + bottom_padding).to_i(2)
   end
 end
 
