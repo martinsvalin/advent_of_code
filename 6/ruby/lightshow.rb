@@ -1,4 +1,3 @@
-require 'matrix'
 ##
 # Turn on, off or toggle regions of a 1000x1000 grid of lights.
 # An instruction is in one of the following forms:
@@ -137,5 +136,8 @@ fail unless Lights.count([
   'turn off 499,499 through 500,500'
 ]) == 998_996
 
-input = File.readlines(File.join(__dir__, '../input.txt'))
-puts "There are #{Lights.count(input)} lit lights on the grid."
+if ARGV[0]
+  puts "There are #{Lights.count(ARGF.each_line.to_a)} lit lights on the grid."
+else
+  puts 'All checks are ok.'
+end
