@@ -57,7 +57,7 @@ defmodule Advent.BlocksToHq do
 
 
   @doc """
-  Find the length of the shortest path to a destination, from the origin
+  The length of the shortest path to a position, from the origin
 
   ## Examples
 
@@ -70,7 +70,7 @@ defmodule Advent.BlocksToHq do
 
 
   @doc """
-  Find the first position that was visited twice.
+  Find the first position in the list that was visited twice.
 
   ## Examples
 
