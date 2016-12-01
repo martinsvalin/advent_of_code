@@ -79,7 +79,7 @@ defmodule Advent.NoTimeForTaxicab do
       iex> first_visited_twice(positions)
       {-4, 0}
   """
-  @spec first_visited_twice([position]) :: position
+  @spec first_visited_twice([position, ...]) :: position
   def first_visited_twice(positions), do: first_visited_twice(positions, [])
 
   defp first_visited_twice([h | t], seen) do
