@@ -19,7 +19,7 @@ defmodule Advent.BlocksToHq do
 
       iex> follow_instructions("R2, L3")
       [{-2, 3}, {-2, 2}, {-2, 1}, {-2, 0}, {-1, 0}, {0, 0}]
-      iex> follow_instructions([{"R", 2}, {"R", 2}, {"R", 2}])
+      iex> follow_instructions([{?R, 2}, {?R, 2}, {?R, 2}])
       [{0, -2}, {-1, -2}, {-2, -2}, {-2, -1}, {-2, 0}, {-1, 0}, {0, 0}]
   """
   @spec follow_instructions(String.t) :: [position, ...]
@@ -41,8 +41,8 @@ defmodule Advent.BlocksToHq do
   @turn_right %{ north: :west, west: :south, south: :east, east: :north }
   @turn_left Util.invert_map(@turn_right)
 
-  defp turn("R", from_direction), do: @turn_right[from_direction]
-  defp turn("L", from_direction), do: @turn_left[from_direction]
+  defp turn(?R, from_direction), do: @turn_right[from_direction]
+  defp turn(?L, from_direction), do: @turn_left[from_direction]
 
   defp walk(positions, _dir, 0), do: positions
   defp walk([position | _] = positions, direction, distance) do
@@ -89,7 +89,7 @@ defmodule Advent.BlocksToHq do
     end
   end
 
-  # Turns "R2, L3" into [{"R", 2}, {"L", 3}]
+  # Turns "R2, L3" into [{?R, 2}, {?L, 3}]
   defp parse(text) do
     text
     |> String.trim
@@ -97,8 +97,8 @@ defmodule Advent.BlocksToHq do
     |> Enum.map(&parse_instruction/1)
   end
 
-  # Turns "R12" into {"R", 12}
-  defp parse_instruction(<<direction :: 1-bytes>> <> distance) do
+  # Turns "R12" into {?R, 12}
+  defp parse_instruction(<<direction :: 8>> <> distance) do
     {direction, Util.to_int(distance)}
   end
 end
