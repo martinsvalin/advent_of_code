@@ -1,24 +1,20 @@
 # Advent2016
 
-**TODO: Add description**
+Advent of Code 2016 solutions by Martin Svalin, in Elixir.
 
-## Installation
+## Solving with your input
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+To solve a puzzle with your input, run the appropriate `solve.exs` script.
 
-  1. Add `advent_2016` to your list of dependencies in `mix.exs`:
-
-    ```elixir
-    def deps do
-      [{:advent_2016, "~> 0.1.0"}]
-    end
+    ```
+    mix run lib/advent01/solve.ex input.txt
     ```
 
-  2. Ensure `advent_2016` is started before your application:
+## Running the test suite
 
-    ```elixir
-    def application do
-      [applications: [:advent_2016]]
-    end
+The test suite includes examples from the puzzle description.
+Run them with:
+
     ```
-
+    mix test
+    ```
