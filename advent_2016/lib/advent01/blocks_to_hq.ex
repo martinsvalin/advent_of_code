@@ -17,10 +17,10 @@ defmodule Advent.BlocksToHq do
 
   ## Examples
 
-    iex> follow_instructions("R2, L3")
-    [{-2, 3}, {-2, 2}, {-2, 1}, {-2, 0}, {-1, 0}, {0, 0}]
-    iex> follow_instructions([{"R", 2}, {"R", 2}, {"R", 2}])
-    [{0, -2}, {-1, -2}, {-2, -2}, {-2, -1}, {-2, 0}, {-1, 0}, {0, 0}]
+      iex> follow_instructions("R2, L3")
+      [{-2, 3}, {-2, 2}, {-2, 1}, {-2, 0}, {-1, 0}, {0, 0}]
+      iex> follow_instructions([{"R", 2}, {"R", 2}, {"R", 2}])
+      [{0, -2}, {-1, -2}, {-2, -2}, {-2, -1}, {-2, 0}, {-1, 0}, {0, 0}]
   """
   @spec follow_instructions(String.t) :: [position, ...]
   @spec follow_instructions([{turn, pos_integer}]) :: [position, ...]
@@ -61,10 +61,10 @@ defmodule Advent.BlocksToHq do
 
   ## Examples
 
-    iex> distance_from_start({2, 3})
-    5
-    iex> distance_from_start({0, -2})
-    2
+      iex> distance_from_start({2, 3})
+      5
+      iex> distance_from_start({0, -2})
+      2
   """
   def distance_from_start({x, y}), do: abs(x) + abs(y)
 
