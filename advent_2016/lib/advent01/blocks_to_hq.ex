@@ -41,8 +41,8 @@ defmodule Advent.BlocksToHq do
   @turn_right %{ north: :west, west: :south, south: :east, east: :north }
   @turn_left Util.invert_map(@turn_right)
 
-  def turn("R", from_direction), do: @turn_right[from_direction]
-  def turn("L", from_direction), do: @turn_left[from_direction]
+  defp turn("R", from_direction), do: @turn_right[from_direction]
+  defp turn("L", from_direction), do: @turn_left[from_direction]
 
   defp walk(positions, _dir, 0), do: positions
   defp walk([position | _] = positions, direction, distance) do
