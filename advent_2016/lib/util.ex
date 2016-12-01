@@ -1,4 +1,6 @@
 defmodule Util do
+  @moduledoc false
+
   @doc """
   Convert string to integer
 
