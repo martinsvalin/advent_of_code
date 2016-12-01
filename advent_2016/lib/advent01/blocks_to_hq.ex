@@ -24,11 +24,11 @@ defmodule Advent.BlocksToHq do
   """
   @spec follow_instructions(String.t) :: [position, ...]
   @spec follow_instructions([{turn, pos_integer}]) :: [position, ...]
-  def follow_instructions(ins) when is_binary(ins) do
-    parse(ins) |> follow_instructions
+  def follow_instructions(input) when is_binary(input) do
+    parse(input) |> follow_instructions
   end
-  def follow_instructions(ins) do
-    follow_instructions(ins, :north, [{0,0}])
+  def follow_instructions(input) do
+    follow_instructions(input, :north, [{0,0}])
   end
 
   defp follow_instructions([], _, positions), do: positions
