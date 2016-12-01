@@ -66,6 +66,7 @@ defmodule Advent.BlocksToHq do
       iex> distance_from_start({0, -2})
       2
   """
+  @spec distance_from_start(position) :: integer
   def distance_from_start({x, y}), do: abs(x) + abs(y)
 
 
@@ -78,6 +79,7 @@ defmodule Advent.BlocksToHq do
       iex> first_visited_twice(positions)
       {-4, 0}
   """
+  @spec first_visited_twice([position]) :: position
   def first_visited_twice(positions), do: first_visited_twice(positions, [])
 
   defp first_visited_twice([h | t], seen) do
