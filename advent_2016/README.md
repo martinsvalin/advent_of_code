@@ -18,3 +18,7 @@ Run them with:
     ```
     mix test
     ```
+
+## Requirements
+
+You only need Elixir, with its dependencies, installed.
