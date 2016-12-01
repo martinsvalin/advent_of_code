@@ -1,4 +1,4 @@
-defmodule Advent.BlocksToHq do
+defmodule Advent.NoTimeForTaxicab do
   @moduledoc """
   # Advent of Code, Day 1: No Time for a Taxicab
 
