@@ -1,7 +1,10 @@
 alias Advent.BlocksToHq, as: Blocks
 
-positions = File.read!("#{__DIR__}/input.txt")
-|> Blocks.follow_instructions
+path = case System.argv do
+  [] -> "#{__DIR__}/input.txt"
+  [file] -> file
+end
+positions = File.read!(path) |> Blocks.follow_instructions
 
 part1_distance = Blocks.distance_from_start(hd positions)
 IO.puts "Part 1: The distance to HQ is #{part1_distance}"
