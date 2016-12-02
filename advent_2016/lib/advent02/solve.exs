@@ -7,5 +7,5 @@ end
 
 input = File.read!(path) |> String.trim
 
-IO.puts "Part 1: The code for a 3x3 keypad is: " <>  Advent02.decode_3x3(input)
-IO.puts "Part 2: The code for a star-shaped keypad is: " <> Advent02.decode_star(input)
+IO.puts "Part 1: The code for a 3x3 keypad is: " <>  Advent02.decode(input)
+IO.puts "Part 2: The code for a star-shaped keypad is: " <> Advent02.decode(input, :star)
