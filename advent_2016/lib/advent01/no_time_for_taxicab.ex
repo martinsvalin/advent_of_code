@@ -99,6 +99,6 @@ defmodule Advent.NoTimeForTaxicab do
 
   # Turns "R12" into {?R, 12}
   defp parse_instruction(<<direction :: 8>> <> distance) do
-    {direction, Util.to_int(distance)}
+    {direction, String.to_integer(distance)}
   end
 end

@@ -2,23 +2,6 @@ defmodule Util do
   @moduledoc false
 
   @doc """
-  Convert string to integer
-
-  Convenience function to not have to match the tuple giving the rest of the string.
-  This function will fail if the string cannot be fully parsed as an integer.
-
-  ## Examples
-
-      iex> Util.to_int("123")
-      123
-  """
-  def to_int(string) when is_binary(string) do
-    {int, ""} = Integer.parse(string)
-    int
-  end
-
-
-  @doc """
   Invert a map. Does not handle duplicate values.
 
   ## Examples

@@ -33,7 +33,7 @@ defmodule Advent.SquaresWithThreeSides do
   defp prepare_numbers(line) do
     line
     |> String.split(" ", trim: true)
-    |> Enum.map(&Util.to_int/1)
+    |> Enum.map(&String.to_integer/1)
   end
 
   @doc """
