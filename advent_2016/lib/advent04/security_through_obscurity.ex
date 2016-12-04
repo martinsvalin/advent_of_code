@@ -16,14 +16,12 @@ defmodule Advent.SecurityThroughObscurity do
       "very encrypted name"
   """
   @spec decrypt(%{name: String.t, sector_id: integer}) :: String.t
-  def decrypt(%{name: name, sector_id: n}) do
-    decrypt(name, n, "") |> String.reverse
-  end
+  def decrypt(%{name: name, sector_id: n}), do: decrypt(name, n, "")
 
   defp decrypt("", _n, plain_text), do: plain_text
-  defp decrypt("-" <> rest, n, plain_text), do: decrypt(rest, n, " " <> plain_text)
+  defp decrypt("-" <> rest, n, plain_text), do: decrypt(rest, n, plain_text <> " ")
   defp decrypt(<<first>> <> rest, n, plain_text) do
-    decrypt(rest, n, shift(first, n) <> plain_text)
+    decrypt(rest, n, plain_text <> shift(first, n))
   end
 
   defp shift(letter, n) when letter in ?a..?z do
