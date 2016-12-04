@@ -1,9 +1,34 @@
 defmodule Advent.SecurityThroughObscurity do
   @moduledoc """
   # Advent of Code, Day 4: Security Through Obscurity
+
+  See: http://adventofcode.com/2016/day/4
   """
 
   @typep room :: %{name: String.t, sector_id: integer, checksum: String.t}
+
+  @doc """
+  Decrypt a room name. Only handles lower-case.
+
+  ## Examples
+
+      iex> decrypt(%{name: "qzmt-zixmtkozy-ivhz", sector_id: 343, checksum: "zimth"})
+      "very encrypted name"
+  """
+  @spec decrypt(%{name: String.t, sector_id: integer}) :: String.t
+  def decrypt(%{name: name, sector_id: n}) do
+    decrypt(name, n, "") |> String.reverse
+  end
+
+  defp decrypt("", _n, plain_text), do: plain_text
+  defp decrypt("-" <> rest, n, plain_text), do: decrypt(rest, n, " " <> plain_text)
+  defp decrypt(<<first>> <> rest, n, plain_text) do
+    decrypt(rest, n, shift(first, n) <> plain_text)
+  end
+
+  defp shift(letter, n) when letter in ?a..?z do
+    <<rem(letter - ?a + rem(n, 26), 26) + ?a>>
+  end
 
   @doc """
   Parse input to rooms
@@ -63,7 +88,7 @@ defmodule Advent.SecurityThroughObscurity do
   def checksum(name) do
     name
     |> letter_frequency
-    |> Enum.sort_by(fn {letter, freq} -> -freq end)
+    |> Enum.sort_by(fn {_letter, freq} -> -freq end)
     |> Keyword.keys
     |> Enum.take(5)
     |> Enum.join
