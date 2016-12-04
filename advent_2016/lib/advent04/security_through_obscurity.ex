@@ -86,7 +86,7 @@ defmodule Advent.SecurityThroughObscurity do
   def checksum(name) do
     name
     |> letter_frequency
-    |> Enum.sort_by(fn {_letter, freq} -> -freq end)
+    |> Enum.sort_by(fn {letter, freq} -> {-freq, letter} end)
     |> Keyword.keys
     |> Enum.take(5)
     |> Enum.join
