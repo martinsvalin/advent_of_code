@@ -2,7 +2,7 @@ defmodule Advent.SignalsAndNoise do
   @moduledoc """
   # Advent of Code, Day 6: Signals and Noise
 
-  See: http://adventofcode.com/2016/day/5
+  See: http://adventofcode.com/2016/day/6
   """
 
   @spec error_correct_by_most_frequent(String.t) :: String.t
