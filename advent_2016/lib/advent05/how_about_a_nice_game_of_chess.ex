@@ -6,7 +6,6 @@ defmodule Advent.HowAboutANiceGameOfChess do
   """
 
   @leading_zeroes 5
-  @password_size 8
 
   @doc """
   Crack the password, given a seed, by finding 8 md5s with 5 leading zeroes.
