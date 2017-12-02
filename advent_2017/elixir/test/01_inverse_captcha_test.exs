@@ -5,10 +5,10 @@ defmodule InverseCaptchaTest do
 
   describe "sum_matching_next" do
     test "given test cases" do
-      assert sum_matching_next([1,1,2,2]) == 3
-      assert sum_matching_next([1,1,1,1]) == 4
-      assert sum_matching_next([1,2,3,4]) == 0
-      assert sum_matching_next([9,1,2,1,2,1,2,9]) == 9
+      assert sum_matching_next("1122") == 3
+      assert sum_matching_next("1111") == 4
+      assert sum_matching_next("1234") == 0
+      assert sum_matching_next("91212129") == 9
     end
   end
 end
