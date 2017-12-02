@@ -14,9 +14,14 @@ defmodule InverseCaptcha do
 
   ## Examples
 
-      iex> InverseCaptcha.sum_matching_next([1,1,2,2])
+      iex> sum_matching_next([1,1,2,2])
       3
-      iex> InverseCaptcha.sum_matching_next([1,1,1,1])
+      iex> sum_matching_next([1,1,1,1])
+      4
+
+      iex> sum_matching_next("1122")
+      3
+      iex> sum_matching_next("1111")
       4
   """
   def sum_matching_next(digits = [hd|_]) when is_list(digits) do
@@ -25,12 +30,12 @@ defmodule InverseCaptcha do
     |> Enum.filter(fn [x,y] -> x == y end)
     |> Enum.reduce(0, fn [x, _], sum -> sum + x end)
   end
-  
+  def sum_matching_next(digits) when is_binary(digits) do
+    digits |> to_numbers |> sum_matching_next
+  end
 
-  @doc """
-  Convert string of digits to corresponding list of digits
-  """
-  def to_numbers(digits) when is_binary(digits) do
+
+  defp to_numbers(digits) when is_binary(digits) do
     digits |> String.to_integer |> Integer.digits
   end
 end
