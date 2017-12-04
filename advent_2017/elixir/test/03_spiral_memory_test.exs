@@ -3,3 +3,8 @@ defmodule SpiralMemoryTest do
   import SpiralMemory
   doctest SpiralMemory
 end
+
+defmodule SpiralTest do
+  use ExUnit.Case
+  doctest Spiral
+end

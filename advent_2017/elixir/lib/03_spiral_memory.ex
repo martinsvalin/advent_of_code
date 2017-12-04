@@ -83,6 +83,15 @@ defmodule Spiral do
 
   @doc """
   Generate spiral coordinates as a stream, starting from {0,0}
+
+  ## Examples
+
+      iex> Enum.take(Spiral.stream, 20)
+      [
+        {0, 0}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1},
+        {1, -1}, {2, -1}, {2, 0}, {2, 1}, {2, 2}, {1, 2}, {0, 2}, {-1, 2},
+        {-2, 2}, {-2, 1}, {-2, 0}, {-2, -1}
+      ]
   """
   def stream do
     Stream.unfold({MapSet.new, {0,0}, :south}, &unfold_spiral/1)
