@@ -18,9 +18,11 @@ defmodule SpiralMemory do
       31
   """
   def distance_from_start(limit) do
-    [{x,y}] = Spiral.stream
-      |> Stream.drop(limit-1)
+    [{x, y}] =
+      Spiral.stream()
+      |> Stream.drop(limit - 1)
       |> Enum.take(1)
+
     abs(x) + abs(y)
   end
 
@@ -50,19 +52,18 @@ defmodule SpiralMemory do
       }
   """
   def sum_of_neighbor_spiral(limit) do
-    Enum.reduce_while(Spiral.stream, %{}, fn coord, map ->
-      case neighbors(map, coord) |> Enum.sum |> max(1) do
+    Enum.reduce_while(Spiral.stream(), %{}, fn coord, map ->
+      case neighbors(map, coord) |> Enum.sum() |> max(1) do
         sum when sum >= limit -> {:halt, Map.put(map, coord, sum)}
-        sum                   -> {:cont, Map.put(map, coord, sum)}
+        sum -> {:cont, Map.put(map, coord, sum)}
       end
     end)
   end
 
-  defp neighbors(map, {x,y}) do
-    for xx <- x-1..x+1,
-        yy <- y-1..y+1,
-        map[{xx, yy}]
-    do
+  defp neighbors(map, {x, y}) do
+    for xx <- (x - 1)..(x + 1),
+        yy <- (y - 1)..(y + 1),
+        map[{xx, yy}] do
       map[{xx, yy}]
     end
   end
@@ -94,7 +95,7 @@ defmodule Spiral do
       ]
   """
   def stream do
-    Stream.unfold({MapSet.new, {0,0}, :south}, &unfold_spiral/1)
+    Stream.unfold({MapSet.new(), {0, 0}, :south}, &unfold_spiral/1)
   end
 
   defp unfold_spiral({set, coordinate, direction}) do
@@ -118,11 +119,11 @@ defmodule Spiral do
   defp left(coordinate, direction), do: apply(__MODULE__, @rotate[direction], [coordinate])
 
   @doc false
-  def south({x,y}), do: {x, y-1}
+  def south({x, y}), do: {x, y - 1}
   @doc false
-  def north({x,y}), do: {x, y+1}
+  def north({x, y}), do: {x, y + 1}
   @doc false
-  def east({x,y}),  do: {x+1, y}
+  def east({x, y}), do: {x + 1, y}
   @doc false
-  def west({x,y}),  do: {x-1, y}
+  def west({x, y}), do: {x - 1, y}
 end

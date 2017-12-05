@@ -19,17 +19,17 @@ defmodule InverseCaptcha do
       iex> sum_matching_next("1111")
       4
   """
-  def sum_matching_next(digits = [hd|tl]) when is_list(digits) do
+  def sum_matching_next(digits = [hd | tl]) when is_list(digits) do
     rotate_one = tl ++ [hd]
 
     digits
     |> Enum.zip(rotate_one)
     |> sum_matching
   end
-  def sum_matching_next(digits) when is_binary(digits) do
-    digits |> String.codepoints |> sum_matching_next
-  end
 
+  def sum_matching_next(digits) when is_binary(digits) do
+    digits |> String.codepoints() |> sum_matching_next
+  end
 
   @doc """
   Find the sum of all digits that match the one half a list away
@@ -51,14 +51,14 @@ defmodule InverseCaptcha do
     |> Enum.zip(across)
     |> sum_matching
   end
-  def sum_matching_across(digits) when is_binary(digits) do
-    digits |> String.codepoints |> sum_matching_across
-  end
 
+  def sum_matching_across(digits) when is_binary(digits) do
+    digits |> String.codepoints() |> sum_matching_across
+  end
 
   defp sum_matching(pairs) do
     Enum.reduce(pairs, 0, fn
-      {x,x}, sum -> sum + String.to_integer(x)
+      {x, x}, sum -> sum + String.to_integer(x)
       _, sum -> sum
     end)
   end

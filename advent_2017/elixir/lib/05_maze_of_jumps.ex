@@ -21,7 +21,6 @@ defmodule MazeOfJumps do
     input |> to_indexed_map |> jump_around(0, 0)
   end
 
-
   @doc """
   Count steps through the maze, decrementing instructions >= 3
 
@@ -34,12 +33,11 @@ defmodule MazeOfJumps do
     input |> to_indexed_map |> jump_strange(0, 0)
   end
 
-
   @doc false
   def jump_around(map, index, count) do
     case map[index] do
       nil -> count
-      to  -> jump_around(Map.put(map, index, to + 1), index + to, count + 1)
+      to -> jump_around(Map.put(map, index, to + 1), index + to, count + 1)
     end
   end
 
@@ -54,10 +52,12 @@ defmodule MazeOfJumps do
 
   @doc false
   def to_indexed_map(string) when is_binary(string) do
-    indexed = string
-    |> String.split
-    |> Enum.map(&String.to_integer/1)
-    |> Enum.with_index
-    for {val, i} <- indexed, into: Map.new, do: {i, val}
+    indexed =
+      string
+      |> String.split()
+      |> Enum.map(&String.to_integer/1)
+      |> Enum.with_index()
+
+    for {val, i} <- indexed, into: Map.new(), do: {i, val}
   end
 end
