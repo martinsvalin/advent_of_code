@@ -19,7 +19,7 @@ defmodule MemoryReallocation do
 
       iex> MemoryReallocation.cycles_until_repetition([0, 2, 7, 0])
       5
-      iex> MemoryReallocation.cycles_until_repetition([2,4,1,2])
+      iex> MemoryReallocation.cycles_until_repetition([2, 4, 1, 2])
       4
   """
   def cycles_until_repetition(input) do
@@ -28,15 +28,14 @@ defmodule MemoryReallocation do
     MapSet.size(unique_configurations)
   end
 
-
   @doc """
   Give the size of the loop detected
 
   ## Examples
 
-      iex> MemoryReallocation.size_of_loop([0,2,7,0])
+      iex> MemoryReallocation.size_of_loop([0, 2, 7, 0])
       4
-      iex> MemoryReallocation.size_of_loop([2,4,1,2])
+      iex> MemoryReallocation.size_of_loop([2, 4, 1, 2])
       4
   """
   def size_of_loop(input) do
@@ -45,7 +44,8 @@ defmodule MemoryReallocation do
   end
 
   @doc false
-  def detect_repetition(mem_banks), do: detect_repetition(mem_banks, MapSet.new)
+  def detect_repetition(mem_banks), do: detect_repetition(mem_banks, MapSet.new())
+
   def detect_repetition(mem_banks, seen) do
     if MapSet.member?(seen, mem_banks) do
       {seen, mem_banks}
@@ -55,7 +55,7 @@ defmodule MemoryReallocation do
   end
 
   defp reallocate(mem_banks) do
-    {biggest, index} = mem_banks |> Enum.with_index |> Enum.max_by(&elem(&1, 0))
+    {biggest, index} = mem_banks |> Enum.with_index() |> Enum.max_by(&elem(&1, 0))
     skipped = Enum.take(mem_banks, index)
     acc = [0 | Enum.reverse(skipped)]
 
