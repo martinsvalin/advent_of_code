@@ -22,7 +22,8 @@ defmodule RecursiveCircus do
   gyxo (61)
   cntj (57)
 
-  1. What is the name of the program at the root? 
+  1. What is the name of the program at the root?
+  2. What should the unbalanced program weigh to balance up the tower?
   """
 
   @doc """
