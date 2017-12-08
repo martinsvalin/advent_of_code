@@ -148,13 +148,13 @@ defmodule RecursiveCircus do
       "" ->
         {name, String.to_integer(weight), []}
 
-      above ->
+      above when is_binary(above) ->
         {name, String.to_integer(weight), String.split(above, ", ")}
 
       nil ->
         raise ArgumentError,
           message:
-            "line must be of pattern 'name (weight) -> names, above' but was: #{inspect(line)}"
+            "line must be of pattern 'name (weight) -> names, above' but was: #{inspect(string)}"
     end
   end
 end
