@@ -28,20 +28,44 @@ defmodule StreamProcessing do
   """
   @spec score(String.t()) :: pos_integer()
   def score(input) do
-    input |> parse_into_tree |> assign_scores |> total_score
+    input
+    |> String.trim_trailing()
+    |> parse_into_tree
+    |> assign_scores
+    |> total_score
+  end
+
+  @doc """
+  Count the combined length of the garbage, ignoring escaped characters
+
+  ## Examples
+
+      iex> garbage_length("{<abc>,<d>}")
+      4
+      iex> garbage_length("{<!b>}")
+      0
+  """
+  @spec garbage_length(String.t()) :: non_neg_integer()
+  def garbage_length(input) do
+    input
+    |> String.trim_trailing()
+    |> parse_into_tree()
+    |> List.flatten()
+    |> Enum.map(&byte_size/1)
+    |> Enum.sum()
   end
 
   @doc """
   Parse the stream into a tree structure
 
   Curly braces delimit groups that contain comma-separated groups or garbage
-  Angle brackets delimit garbage. Exclamation points escapa characters in
-  garbage.
+  Angle brackets delimit garbage. Exclamation points escape characters in
+  garbage. Escaped characters are removed.
 
   ## Examples
 
       iex> parse_into_tree("{{<ab>},{{<cd!>,<ef>},{}}}")
-      [["ab"],[["cd!>,<ef"], []]]
+      [["ab"],[["cd,<ef"], []]]
   """
   @spec parse_into_tree(String.t()) :: tree
   def parse_into_tree(string), do: hd(parse_into_tree(string, [], false))
@@ -64,15 +88,22 @@ defmodule StreamProcessing do
     parse_into_tree(rest, tree, false)
   end
 
-  defp parse_into_tree(<<"!", char::utf8>> <> rest, [gb | tree], true) do
-    parse_into_tree(rest, [gb <> <<"!", char::utf8>> | tree], true)
+  defp parse_into_tree(<<"!", _::utf8>> <> rest, tree, true) do
+    parse_into_tree(rest, tree, true)
   end
 
   defp parse_into_tree(<<char::utf8>> <> rest, [gb | tree], true) do
     parse_into_tree(rest, [gb <> <<char::utf8>> | tree], true)
   end
 
-  @doc false
+  @doc """
+  Assign scores to each node in the tree, starting with 1
+
+  ## Examples
+
+      iex> assign_scores([["ab"], []])
+      {1, [{2, ["ab"]}, {2, []}]}
+  """
   @spec assign_scores(tree) :: scored_tree
   def assign_scores(tree, initial_score \\ 1)
   def assign_scores(garbage, _) when is_binary(garbage), do: garbage
