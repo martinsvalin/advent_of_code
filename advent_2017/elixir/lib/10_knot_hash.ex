@@ -115,13 +115,15 @@ defmodule KnotHash do
     |> Enum.map(&String.to_integer/1)
   end
 
-  defp to_hex_string(numbers) do
+  defp to_hex_string(numbers) when is_list(numbers) do
     numbers
-    |> Enum.map_join(fn n ->
-         n
-         |> Integer.to_string(16)
-         |> String.pad_leading(2, "0")
-       end)
+    |> Enum.map_join(&to_hex_string/1)
     |> String.downcase()
+  end
+
+  defp to_hex_string(number) when is_integer(number) do
+    number
+    |> Integer.to_string(16)
+    |> String.pad_leading(2, "0")
   end
 end
