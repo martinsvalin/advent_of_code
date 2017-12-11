@@ -85,13 +85,10 @@ defmodule KnotHash do
       iex> KnotHash.dense_hash(ring)
       [5]
   """
-  def dense_hash(ring, acc \\ [])
-  def dense_hash([], acc), do: Enum.reverse(acc)
-
-  def dense_hash(ring, acc) do
-    block = Enum.take(ring, 16)
-    condensed_block = Enum.reduce(block, fn n, result -> Bitwise.bxor(n, result) end)
-    dense_hash(Enum.drop(ring, 16), [condensed_block | acc])
+  def dense_hash(ring) do
+    ring
+    |> Enum.chunk(16)
+    |> Enum.map(fn chunk -> Enum.reduce(chunk, &Bitwise.bxor/2) end)
   end
 
   defp reverse_and_rotate({length, skip}, list) do
