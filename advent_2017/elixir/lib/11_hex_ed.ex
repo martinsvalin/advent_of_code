@@ -58,36 +58,6 @@ defmodule HexEd do
     end)
   end
 
-  @distance_growth %{
-    "n"  => %{"n" =>  1, "nw" =>  1, "sw" =>  0, "s" => -1, "se" =>  0, "ne" =>  1, },
-    "nw" => %{"n" =>  1, "nw" =>  1, "sw" =>  1, "s" =>  0, "se" => -1, "ne" =>  0, },
-    "sw" => %{"n" =>  0, "nw" =>  1, "sw" =>  1, "s" =>  1, "se" =>  0, "ne" => -1, },
-    "s"  => %{"n" => -1, "nw" =>  0, "sw" =>  1, "s" =>  1, "se" =>  1, "ne" =>  0, },
-    "se" => %{"n" =>  0, "nw" => -1, "sw" =>  0, "s" =>  1, "se" =>  1, "ne" =>  1, },
-    "ne" => %{"n" =>  1, "nw" =>  0, "sw" => -1, "s" =>  0, "se" =>  1, "ne" =>  1, }
-  }
-
-  @substitute %{
-    "n"  => %{"sw" => "nw", "se" => "ne"},
-    "nw" => %{"s"  => "sw", "ne" => "n"},
-    "sw" => %{"n"  => "nw", "se" => "s"},
-    "s"  => %{"nw" => "sw", "ne" => "se"},
-    "se" => %{"n"  => "ne", "sw" => "s"},
-    "ne" => %{"nw" => "n",  "s"  => "se"}
-  }
-
-  @doc false
-  def traverse_hex_grid(to, []), do: [to]
-  def traverse_hex_grid(to, [prev|t]) do
-    IO.inspect(to: to, prev: prev)
-    IO.inspect(distance_growth: @distance_growth[prev][to])
-    case @distance_growth[prev][to] do
-      -1 -> t
-       1 -> [to, prev | t]
-       0 -> [@substitute[prev][to] | t]
-    end
-  end
-
   defp to_instructions(string) do
     string
     |> String.trim_trailing()
