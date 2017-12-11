@@ -117,12 +117,11 @@ defmodule KnotHash do
 
   defp to_hex_string(numbers) do
     numbers
-    |> Enum.map(fn n ->
+    |> Enum.map_join(fn n ->
          n
          |> Integer.to_string(16)
          |> String.pad_leading(2, "0")
        end)
-    |> Enum.join()
     |> String.downcase()
   end
 end
