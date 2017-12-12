@@ -7,14 +7,14 @@ defmodule HexEd do
 
   Here is a sketch of a hex grid showing the directions:
 
-             \ n  /
-           nw +--+ ne
-             /    \
-           -+      +-
-             \    /
-           sw +--+ se
-             / s  \
-"""
+        \ n  /
+      nw +--+ ne
+        /    \
+      -+      +-
+        \    /
+      sw +--+ se
+        / s  \
+  """
 
   @doc """
   The shortest distance to where the instuctions take us on the hex grid
@@ -29,8 +29,8 @@ defmodule HexEd do
       iex> HexEd.final_distance(~w(n nw s))
       1
   """
-  @spec final_distance(String.t) :: non_neg_integer()
-  @spec final_distance([String.t]) :: non_neg_integer()
+  @spec final_distance(String.t()) :: non_neg_integer()
+  @spec final_distance([String.t()]) :: non_neg_integer()
   def final_distance(input) do
     input |> distances() |> List.last()
   end
@@ -43,12 +43,11 @@ defmodule HexEd do
       iex> HexEd.furthest_distance("n,n,s,s")
       2
   """
-  @spec furthest_distance(String.t) :: non_neg_integer()
-  @spec furthest_distance([String.t]) :: non_neg_integer()
+  @spec furthest_distance(String.t()) :: non_neg_integer()
+  @spec furthest_distance([String.t()]) :: non_neg_integer()
   def furthest_distance(input) do
     input |> distances() |> Enum.max()
   end
-
 
   @doc """
   Calculate the distance for each step as we follow the directions
@@ -58,9 +57,10 @@ defmodule HexEd do
       iex> HexEd.distances("n,n,s,s")
       [1,2,1,0]
   """
-  @spec distances(String.t) :: [non_neg_integer()]
-  @spec distances([String.t]) :: [non_neg_integer()]
+  @spec distances(String.t()) :: [non_neg_integer()]
+  @spec distances([String.t()]) :: [non_neg_integer()]
   def distances(input) when is_binary(input), do: input |> to_instructions() |> distances
+
   def distances(input) when is_list(input) do
     input
     |> Enum.reduce([], &count_directions/2)
@@ -69,8 +69,9 @@ defmodule HexEd do
   end
 
   defp count_directions(dir, []), do: [%{dir => 1}]
+
   defp count_directions(dir, [prev | _] = counts) do
-    [Map.update(prev, dir, 1, & &1 + 1) | counts]
+    [Map.update(prev, dir, 1, &(&1 + 1)) | counts]
   end
 
   @opposite %{
@@ -89,14 +90,13 @@ defmodule HexEd do
     |> Enum.sort()
     |> Enum.reverse()
     |> Enum.take(2)
-    |> Enum.sum
+    |> Enum.sum()
   end
 
   def cancel_out_opposite(counts) do
-    Enum.reduce(counts, %{}, fn
-      {dir, count}, cancelled ->
-        opp_count = Map.get(counts, @opposite[dir], 0)
-        Map.put(cancelled, dir, max(count - opp_count, 0))
+    Enum.reduce(counts, %{}, fn {dir, count}, cancelled ->
+      opp_count = Map.get(counts, @opposite[dir], 0)
+      Map.put(cancelled, dir, max(count - opp_count, 0))
     end)
   end
 
