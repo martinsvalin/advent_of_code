@@ -4,11 +4,11 @@ defmodule HexEdTest do
 
   describe "distance" do
     test "ne,ne,sw,sw" do
-      assert HexEd.distance("ne,ne,sw,sw") == 0
+      assert HexEd.final_distance("ne,ne,sw,sw") == 0
     end
 
     test "taking a longer turn" do
-      assert HexEd.distance("s,s,se,ne,n,n") == 2
+      assert HexEd.final_distance("s,s,se,ne,n,n") == 2
     end
   end
 end
