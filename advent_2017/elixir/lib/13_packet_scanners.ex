@@ -19,7 +19,7 @@ defmodule PacketScanners do
     for {depth, range} <- scanners(input), caught_at?(range, depth + delay) do
       depth * range
     end
-    |> Enum.sum
+    |> Enum.sum()
   end
 
   @doc """
@@ -29,6 +29,7 @@ defmodule PacketScanners do
 
   defp sneaky_time(scanners, delay) do
     caught? = Enum.any?(scanners, fn {depth, range} -> caught_at?(range, depth + delay) end)
+
     case caught? do
       true -> sneaky_time(scanners, delay + 1)
       false -> delay
