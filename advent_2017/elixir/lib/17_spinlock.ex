@@ -16,10 +16,10 @@ defmodule Spinlock do
 
   ## Examples
 
-      iex> Spinlock.value_after_2017(3, 2017)
+      iex> Spinlock.value_after_last_inserted(3, 2017)
       638
   """
-  def value_after_2017(spin_length, max) do
+  def value_after_last_inserted(spin_length, max) do
     {index, list} =
       1..max
       |> Enum.reduce({0, [0]}, fn i = len, {current, list} ->
