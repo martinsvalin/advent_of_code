@@ -20,4 +20,15 @@ defmodule DuetTest do
       assert recover_frequency(@example_input) == 4
     end
   end
+
+  test "running two programs concurrently" do
+    ops = Duet.ops(@example_input)
+    {:ok, d0} = Duet.Server.start(0, ops)
+    {:ok, d1} = Duet.Server.start(1, ops)
+
+    Duet.Server.run(d0, d1)
+    Duet.Server.run(d1, d0)
+
+    :timer.sleep(3000)
+  end
 end
