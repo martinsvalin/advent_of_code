@@ -22,13 +22,21 @@ defmodule DuetTest do
   end
 
   test "running two programs concurrently" do
-    ops = Duet.ops(@example_input)
+    test_two_programs(input: @example_input, expectations: [{0, 1}, {1, 1}])
+  end
+
+  test "running two programs on my puzzle input" do
+    test_two_programs(input: File.read!("inputs/18.txt"), expectations: [{0, 254}, {1, 127}])
+  end
+
+  def test_two_programs(input: input, expectations: expectations) do
+    ops = Duet.ops(input)
     {:ok, d0} = Duet.Server.start(0, ops)
     {:ok, d1} = Duet.Server.start(1, ops)
 
-    Duet.Server.run(d0, d1)
-    Duet.Server.run(d1, d0)
+    Duet.Server.run(d0, other: d1)
+    Duet.Server.run(d1, other: d0)
 
-    :timer.sleep(3000)
+    Enum.map(expectations, fn {id, sent_count} -> assert_receive({^id, ^sent_count, _}) end)
   end
 end

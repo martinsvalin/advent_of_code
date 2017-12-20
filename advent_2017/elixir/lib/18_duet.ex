@@ -106,84 +106,85 @@ end
 defmodule Duet.Server do
   use GenServer
 
+  alias __MODULE__, as: DS
+
+  defstruct id: nil, other: nil, parent: nil, lops: [], rops: [], register: %{}, sent_count: 0
+
   def start(id, ops) do
-    GenServer.start(__MODULE__, {id, ops})
+    GenServer.start(__MODULE__, {id, ops, self()})
   end
 
-  def run(pid, other) do
+  def run(pid, other: other) do
     GenServer.cast(pid, {:run, other})
   end
 
-  def run({_left, []} = ops, reg, id, other, sent) do
-    # IO.puts("#{id} --- Ran out of instructions. Stopping")
-    {:done, {ops, reg, id, other, sent}}
+  def run(%DS{rops: []} = state) do
+    {:no_more_ops, state}
   end
 
-  def run({left, [{cmd, x, y} = op | right]}, reg, id, other, sent)
+  def run(%DS{lops: left, rops: [{cmd, x, y} = op | right], register: reg} = state)
       when cmd in [:set, :add, :mul, :mod] do
-    # IO.puts("#{id} --- op #{inspect(op)} on register #{inspect(reg)}")
-    run({[op | left], right}, apply(Duet, cmd, [reg, x, y]), id, other, sent)
+    %DS{state | lops: [op | left], rops: right, register: apply(Duet, cmd, [reg, x, y])}
+    |> run()
   end
 
-  def run({left, [{:jgz, x, y} = op | right] = op_right}, reg, id, other, sent) do
+  def run(%DS{lops: left, rops: [{:jgz, x, y} = op | right] = rops, register: reg} = state) do
     case Duet.val(reg, x) do
       x when x <= 0 ->
-        # IO.puts("#{id} --- no jump")
-        run({[op | left], right}, reg, id, other, sent)
+        run(%DS{state | lops: [op | left], rops: right})
 
       _ ->
         val_y = Duet.val(reg, y)
-        # IO.puts("#{id} --- jumping by #{val_y}")
 
-        case Duet.jump(left, op_right, val_y) do
+        case Duet.jump(left, rops, val_y) do
           :error ->
-            # IO.puts("#{id} --- jump error, stopping.")
-            GenServer.stop(self())
+            {:jump_error, state}
 
-          ops ->
-            run(ops, reg, id, other, sent)
+          {left, right} ->
+            run(%DS{state | lops: left, rops: right})
         end
     end
   end
 
-  def run({left, [{:snd, x} = op | right]}, reg, id, other, sent) do
-    # IO.puts("#{id} (pid #{inspect(self())}) is sending #{x} to other (pid #{inspect(other)})")
+  def run(%DS{lops: left, rops: [{:snd, x} = op | right], sent_count: sent, other: other} = state) do
     GenServer.cast(other, {:message, x})
-    run({[op | left], right}, reg, id, other, sent + 1)
+    run(%DS{state | lops: [op | left], rops: right, sent_count: sent + 1})
   end
 
-  def run({_, [{:rcv, x} | _]} = ops, reg, id, other, sent) do
-    # IO.puts("#{id} is waiting to receive in #{x}")
-    {ops, reg, id, other, sent}
-  end
-
-  @impl GenServer
-  def init({id, ops}) do
-    {:ok, {{[], ops}, %{"p" => id}, id, nil, 0}}
+  def run(%DS{rops: [{:rcv, _} | _]} = state) do
+    state
   end
 
   @impl GenServer
-  def handle_cast({:run, other}, {ops, reg, id, _, sent}) do
-    # IO.puts("#{id} --- Running")
-    {:noreply, run(ops, reg, id, other, sent), 2_000}
+  def init({id, ops, parent}) do
+    {:ok, %DS{rops: ops, register: %{"p" => id}, id: id, parent: parent}}
   end
 
-  def handle_cast({:message, val}, {{left, [{:rcv, key} = op | right]}, reg, id, other, sent}) do
-    # IO.puts("#{id} --- Receiving #{val} to put into #{key}")
-    case run({[op | left], right}, Duet.set(reg, key, val), id, other, sent) do
-      {:done, state} -> {:stop, :normal, state}
-      state -> {:noreply, state, 2_000}
+  @impl GenServer
+  def handle_cast({:run, other}, state) do
+    {:noreply, run(Map.put(state, :other, other)), 20}
+  end
+
+  def handle_cast(
+        {:message, val},
+        %DS{lops: left, rops: [{:rcv, key} = op | right], register: reg} = state
+      ) do
+    new_state = %DS{state | lops: [op | left], rops: right, register: Duet.set(reg, key, val)}
+
+    case run(new_state) do
+      {:no_more_ops, state} -> {:stop, :normal, {:no_more_ops, state}}
+      {:jump_error, state} -> {:stop, :normal, {:jump_error, state}}
+      %DS{} = state -> {:noreply, state, 20}
     end
   end
 
   @impl GenServer
-  def handle_info(:timeout, {_ops, _reg, id, _other, sent} = state) do
-    # IO.puts "#{id} --- Timed out. This program sent #{sent} messages"
-    {:stop, :normal, state}
+  def handle_info(:timeout, state) do
+    {:stop, :normal, {:timeout, state}}
   end
 
   @impl GenServer
-  def terminate(:normal, {_ops, _reg, id, _other, sent}) do
-    IO.puts("#{id} --- Terminated. This program sent #{sent} messages")
+  def terminate(:normal, {reason, %DS{id: id, sent_count: sent, parent: parent}}) do
+    send(parent, {id, sent, "Program #{id} terminated. Reason: #{reason}. Sent #{sent} messages"})
   end
 end
