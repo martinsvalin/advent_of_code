@@ -81,6 +81,7 @@ defmodule Duet do
 
   def jump(_, _, _), do: :error
 
+  def val(_, x) when is_integer(x), do: x
   def val(register, x) do
     case Integer.parse(x) do
       {int, ""} -> int
@@ -108,55 +109,68 @@ defmodule Duet.Server do
 
   alias __MODULE__, as: DS
 
-  defstruct id: nil, other: nil, parent: nil, lops: [], right: [], register: %{}, sent_count: 0
+  defstruct id: nil, other: nil, parent: nil, left: [], right: [], register: %{}, sent_count: 0
 
   def start(id, ops) do
     GenServer.start(__MODULE__, {id, ops, self()})
   end
 
-  def run(pid, other: other) do
+  def solve(pid, other: other) do
     GenServer.cast(pid, {:run, other})
+  end
+
+  def run(%DS{right: [op | _]} = state) do
+    case op do
+      {:snd, val} -> snd(state, val)
+      {:rcv, key} -> rcv(state, key)
+      {:jgz, key, offset} -> jgz(state, key, offset)
+      {cmd, x, y} -> cmd(state, cmd, x, y)
+    end
   end
 
   def run(%DS{right: []} = state) do
     {:no_more_ops, state}
   end
 
-  def run(%DS{right: [{cmd, x, y} | _], register: reg} = state)
-      when cmd in [:set, :add, :mul, :mod] do
-    %DS{forward(state) | register: apply(Duet, cmd, [reg, x, y])}
+  def cmd(state, cmd, x, y) when cmd in [:set, :add, :mul, :mod] do
+    state
+    |> forward()
+    |> Map.put(:register, apply(Duet, cmd, [state.register, x, y]))
     |> run()
   end
 
-  def run(%DS{lops: left, right: [{:jgz, x, y} | _] = right, register: reg} = state) do
-    case Duet.val(reg, x) do
+  def jgz(state, key, offset) do
+    case Duet.val(state.register, key) do
       x when x <= 0 ->
         state |> forward() |> run()
 
       _ ->
-        val_y = Duet.val(reg, y)
+        offset_value = Duet.val(state.register, offset)
 
-        case Duet.jump(left, right, val_y) do
+        case Duet.jump(state.left, state.right, offset_value) do
           :error ->
             {:jump_error, state}
 
           {left, right} ->
-            run(%DS{state | lops: left, right: right})
+            run(%DS{state | left: left, right: right})
         end
     end
   end
 
-  def run(%DS{right: [{:snd, x} | _], sent_count: sent, other: other} = state) do
-    GenServer.cast(other, {:message, x})
-    run(%DS{forward(state) | sent_count: sent + 1})
+  def snd(state, val) do
+    GenServer.cast(state.other, {:message, Duet.val(state.register, val)})
+    state
+    |> forward()
+    |> Map.update(:sent_count, 1, & &1 + 1)
+    |> run()
   end
 
-  def run(%DS{right: [{:rcv, _} | _]} = state) do
+  def rcv(state, _key) do
     state
   end
 
-  def forward(%DS{lops: left, right: [op | right]} = state) do
-    %DS{state | lops: [op | left], right: right}
+  def forward(%DS{left: left, right: [op | right]} = state) do
+    %DS{state | left: [op | left], right: right}
   end
 
   @impl GenServer

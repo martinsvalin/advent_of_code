@@ -26,7 +26,7 @@ defmodule DuetTest do
   end
 
   test "running two programs on my puzzle input" do
-    test_two_programs(input: File.read!("inputs/18.txt"), expectations: [{0, 254}, {1, 127}])
+    test_two_programs(input: File.read!("inputs/18.txt"), expectations: [{0, 7366}, {1, 7239}])
   end
 
   def test_two_programs(input: input, expectations: expectations) do
@@ -34,8 +34,8 @@ defmodule DuetTest do
     {:ok, d0} = Duet.Server.start(0, ops)
     {:ok, d1} = Duet.Server.start(1, ops)
 
-    Duet.Server.run(d0, other: d1)
-    Duet.Server.run(d1, other: d0)
+    Duet.Server.solve(d0, other: d1)
+    Duet.Server.solve(d1, other: d0)
 
     Enum.map(expectations, fn {id, sent_count} -> assert_receive({^id, ^sent_count, _}) end)
   end
