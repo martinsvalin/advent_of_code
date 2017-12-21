@@ -82,6 +82,7 @@ defmodule Duet do
   def jump(_, _, _), do: :error
 
   def val(_, x) when is_integer(x), do: x
+
   def val(register, x) do
     case Integer.parse(x) do
       {int, ""} -> int
@@ -159,9 +160,10 @@ defmodule Duet.Server do
 
   def snd(state, val) do
     GenServer.cast(state.other, {:message, Duet.val(state.register, val)})
+
     state
     |> forward()
-    |> Map.update(:sent_count, 1, & &1 + 1)
+    |> Map.update(:sent_count, 1, &(&1 + 1))
     |> run()
   end
 
