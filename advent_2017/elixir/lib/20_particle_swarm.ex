@@ -16,13 +16,41 @@ defmodule ParticleSwarm do
     |> parse()
     |> only_lowest_acceleration()
     |> tick_until_increasing()
-    |> Enum.sort_by(fn {id, %{d: d, v: v, a: a}} ->
-         {manhattan(a), manhattan(v), manhattan(d), id}
+    |> Enum.sort_by(fn {id, %{p: p, v: v, a: a}} ->
+         {manhattan(a), manhattan(v), manhattan(p), id}
        end)
     |> List.first()
     |> elem(0)
   end
 
+  @doc """
+  Return the particles that will not collide
+  """
+  def survivors(input) do
+    input
+    |> parse()
+    |> stream_ticks()
+    |> Stream.drop(200) # wow, that's pretty bad ;)
+    |> Enum.take(1)
+    |> hd
+    |> Enum.map(& elem(&1, 0))
+  end
+
+  @doc false
+  def stream_ticks(particles) do
+    Stream.iterate(particles, & tick(&1) |> remove_collisions())
+  end
+
+  def remove_collisions(particles) do
+    particles
+    |> Enum.group_by(fn {_, %{p: p}} -> p end)
+    |> Enum.flat_map(fn
+      {_, list} when length(list) == 1 -> list
+      _ -> []
+    end)
+  end
+
+  @doc false
   def only_lowest_acceleration(particles) do
     min =
       particles
@@ -48,19 +76,19 @@ defmodule ParticleSwarm do
 
   @doc false
   def tick(particles) do
-    for {id, %{d: d, v: v, a: a}} <- particles, nv = increase(v, a), nd = increase(d, nv) do
+    for {id, %{p: p, v: v, a: a}} <- particles, nv = increase(v, a), np = increase(p, nv) do
       {id, %{
-        d: nd,
+        p: np,
         v: nv,
         a: a,
-        dd: manhattan(nd) - manhattan(d),
+        dp: manhattan(np) - manhattan(p),
         dv: manhattan(nv) - manhattan(v)
       }}
     end
   end
 
-  def increasing_in_distance_and_velocity?({_, %{dd: dd, dv: dv}}) do
-    dd > 0 and dv > 0
+  def increasing_in_distance_and_velocity?({_, %{dp: dp, dv: dv}}) do
+    dp > 0 and dv > 0
   end
 
   @doc false
@@ -77,9 +105,9 @@ defmodule ParticleSwarm do
   def parse(input) do
     Regex.scan(@regex, input)
     |> Enum.with_index()
-    |> Enum.map(fn {[_, distance, velocity, acceleration], index} ->
+    |> Enum.map(fn {[_, position, velocity, acceleration], index} ->
          {index, %{
-           d: parse_triplet(distance),
+           p: parse_triplet(position),
            v: parse_triplet(velocity),
            a: parse_triplet(acceleration)
          }}

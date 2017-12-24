@@ -53,4 +53,17 @@ defmodule ParticleSwarmTest do
       assert stays_closest(input) == 2
     end
   end
+
+  describe "survivors/1" do
+    test "returns id of particles that will never collide" do
+      input = """
+      p=<-6,0,0>, v=< 3,0,0>, a=< 0,0,0>
+      p=<-4,0,0>, v=< 2,0,0>, a=< 0,0,0>
+      p=<-2,0,0>, v=< 1,0,0>, a=< 0,0,0>
+      p=< 3,0,0>, v=<-1,0,0>, a=< 0,0,0>
+      """
+
+      assert survivors(input) == [3]
+    end
+  end
 end
