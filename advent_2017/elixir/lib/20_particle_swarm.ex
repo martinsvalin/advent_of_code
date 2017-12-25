@@ -30,24 +30,24 @@ defmodule ParticleSwarm do
     input
     |> parse()
     |> stream_ticks()
-    |> Stream.drop(200) # wow, that's pretty bad ;)
+    |> Stream.drop(200)
     |> Enum.take(1)
     |> hd
-    |> Enum.map(& elem(&1, 0))
+    |> Enum.map(&elem(&1, 0))
   end
 
   @doc false
   def stream_ticks(particles) do
-    Stream.iterate(particles, & tick(&1) |> remove_collisions())
+    Stream.iterate(particles, &(tick(&1) |> remove_collisions()))
   end
 
   def remove_collisions(particles) do
     particles
     |> Enum.group_by(fn {_, %{p: p}} -> p end)
     |> Enum.flat_map(fn
-      {_, list} when length(list) == 1 -> list
-      _ -> []
-    end)
+         {_, list} when length(list) == 1 -> list
+         _ -> []
+       end)
   end
 
   @doc false
