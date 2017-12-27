@@ -20,47 +20,80 @@ defmodule FractalArt do
   You may have to rotate or flip the input to find the corresponding rule. Output
   is not rotated.
 
-  1. How many cells are on after 5 iterations?
+  1. How many pixels are on after 5 iterations?
   """
+
+  @doc """
+  Count how many pixels are on (#) with given rules and number of iterations
+  """
+  def count_on_pixels(input, iterations) do
+    generate_art(input, iterations) |> to_charlist |> Enum.count(&(&1 == ?#))
+  end
 
   @doc """
   Generate art by applying pattern rules for a given number of iterations
   """
-  def generate_art(rules, iterations) do
-    rules = rules |> parse() |> prefill_variations()
+  def generate_art(input, iterations) do
+    rules = input |> parse() |> prefill_variations()
 
     glider()
     |> generate_art(rules, iterations)
     |> Enum.join("\n")
   end
 
-  def generate_art(grid, _, 0), do: grid
+  defp generate_art(grid, _, 0), do: grid
 
-  def generate_art(grid, rules, iterations) do
+  defp generate_art(grid, rules, iterations) do
     generate_art(enhance(grid, rules), rules, iterations - 1)
   end
 
-  def enhance(grid, rules) when length(grid) in [2,3], do: Map.get(rules, grid)
+  @doc false
+  def enhance(grid, rules) when length(grid) in [2, 3] do
+    Map.get(rules, grid)
+  end
+
   def enhance(grid, rules) when length(grid) > 3 do
-    grid |> split_grid() |> Enum.map(& enhance(&1, rules)) |> join_grid()
+    grid
+    |> split_grid()
+    |> Enum.map(fn row -> Enum.map(row, &enhance(&1, rules)) end)
+    |> join_grid()
   end
 
-  def split_grid(grid) do
-    half = length(grid) |> div(2)
+  @doc false
+  def split_grid(grid) when rem(length(grid), 2) == 0, do: split_grid(grid, 2)
+  def split_grid(grid) when rem(length(grid), 3) == 0, do: split_grid(grid, 3)
 
-    [
-      Enum.take(grid, half) |> Enum.map(& Enum.take(&1, half)),
-      Enum.take(grid, half) |> Enum.map(& Enum.drop(&1, half)),
-      Enum.drop(grid, half) |> Enum.map(& Enum.take(&1, half)),
-      Enum.drop(grid, half) |> Enum.map(& Enum.drop(&1, half))
-    ]
+  @doc false
+  def split_grid(grid, chunk_size) do
+    grid
+    |> Enum.chunk_every(chunk_size)
+    |> Enum.map(fn chunk ->
+         chunk
+         |> Enum.map(&Enum.chunk_every(&1, chunk_size))
+         |> List.zip()
+         |> Enum.map(&Tuple.to_list/1)
+       end)
   end
 
-  def join_grid([left_up, right_up, left_down, right_down]) do
-    up = Enum.zip(left_up, right_up) |> Enum.map(fn {left, right} -> left ++ right end)
-    down = Enum.zip(left_down, right_down) |> Enum.map(fn {left, right} -> left ++ right end)
+  @doc false
+  def join_grid(grids) do
+    grids
+    |> Enum.map(&zip_row_grids/1)
+    |> join_rows()
+  end
 
-    up ++ down
+  defp zip_row_grids(row_grids) do
+    row_grids
+    |> List.zip()
+    |> Enum.map(&Tuple.to_list/1)
+    |> Enum.map(&Enum.concat/1)
+  end
+
+  defp join_rows(row_chunks) do
+    Enum.reduce(row_chunks, [], fn rows, acc ->
+      Enum.reduce(rows, acc, fn row, a -> [row | a] end)
+    end)
+    |> Enum.reverse()
   end
 
   @doc false
