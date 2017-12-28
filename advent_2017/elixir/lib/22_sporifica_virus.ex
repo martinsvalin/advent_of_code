@@ -40,10 +40,10 @@ defmodule SporificaVirus do
   @doc """
   Return the number of infections for a given number of bursts.
   """
-  def virus_infections(input, bursts, type \\ :normal) do
+  def virus_infections(input, bursts, evolved \\ false) do
     input
     |> new()
-    |> count_infections(bursts, type)
+    |> count_infections(bursts, evolved)
   end
 
   @doc false
@@ -54,25 +54,25 @@ defmodule SporificaVirus do
   @doc false
   def count_infections(%{infections: infections}, 0, _), do: infections
 
-  def count_infections(state, bursts, type) do
+  def count_infections(state, bursts, evolved) do
     new_state =
       state
-      |> turn(type)
-      |> toggle(type)
+      |> turn(evolved)
+      |> toggle(evolved)
       |> move()
 
-    count_infections(new_state, bursts - 1, type)
+    count_infections(new_state, bursts - 1, evolved)
   end
 
   @doc false
-  def turn(state, :normal) do
+  def turn(state, false) do
     case state_of_current_node(state) do
       :clean -> do_turn(state, :left)
       :infected -> do_turn(state, :right)
     end
   end
 
-  def turn(state, :evolved) do
+  def turn(state, true) do
     case state_of_current_node(state) do
       :clean -> do_turn(state, :left)
       :weakened -> state
@@ -98,14 +98,14 @@ defmodule SporificaVirus do
   def do_turn(%{direction: :right} = state, :back), do: %{state | direction: :left}
 
   @doc false
-  def toggle(state, :normal) do
+  def toggle(state, false) do
     case state_of_current_node(state) do
       :clean -> infect(state)
       :infected -> clean(state)
     end
   end
 
-  def toggle(state, :evolved) do
+  def toggle(state, true) do
     case state_of_current_node(state) do
       :clean -> weaken(state)
       :weakened -> infect(state)
