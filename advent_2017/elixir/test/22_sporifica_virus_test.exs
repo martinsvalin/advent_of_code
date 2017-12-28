@@ -16,5 +16,9 @@ defmodule SporificaVirusTest do
     test "seventy bursts" do
       assert SporificaVirus.virus_infections(@example_input, 70) == 41
     end
+
+    test "evolved, with 100 bursts" do
+      assert SporificaVirus.virus_infections(@example_input, 100, :evolved) == 26
+    end
   end
 end

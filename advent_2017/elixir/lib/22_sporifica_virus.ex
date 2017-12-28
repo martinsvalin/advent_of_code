@@ -40,10 +40,10 @@ defmodule SporificaVirus do
   @doc """
   Return the number of infections for a given number of bursts.
   """
-  def virus_infections(input, bursts) do
+  def virus_infections(input, bursts, type \\ :normal) do
     input
     |> new()
-    |> count_infections(bursts)
+    |> count_infections(bursts, type)
   end
 
   @doc false
@@ -52,50 +52,82 @@ defmodule SporificaVirus do
   end
 
   @doc false
-  def count_infections(%{infections: infections}, 0), do: infections
+  def count_infections(%{infections: infections}, 0, _), do: infections
 
-  def count_infections(state, bursts) do
+  def count_infections(state, bursts, type) do
     new_state =
       state
-      |> turn()
-      |> toggle()
+      |> turn(type)
+      |> toggle(type)
       |> move()
 
-    count_infections(new_state, bursts - 1)
+    count_infections(new_state, bursts - 1, type)
   end
 
   @doc false
-  def turn(state) do
-    case Map.get(state.nodes, state.current, :clean) do
-      :infected -> turn(state, :right)
-      :clean -> turn(state, :left)
+  def turn(state, :normal) do
+    case state_of_current_node(state) do
+      :clean -> do_turn(state, :left)
+      :infected -> do_turn(state, :right)
+    end
+  end
+
+  def turn(state, :evolved) do
+    case state_of_current_node(state) do
+      :clean -> do_turn(state, :left)
+      :weakened -> state
+      :infected -> do_turn(state, :right)
+      :flagged -> do_turn(state, :back)
     end
   end
 
   @doc false
-  def turn(%{direction: :up} = state, :left), do: %{state | direction: :left}
-  def turn(%{direction: :left} = state, :left), do: %{state | direction: :down}
-  def turn(%{direction: :down} = state, :left), do: %{state | direction: :right}
-  def turn(%{direction: :right} = state, :left), do: %{state | direction: :up}
+  def do_turn(%{direction: :up} = state, :left), do: %{state | direction: :left}
+  def do_turn(%{direction: :left} = state, :left), do: %{state | direction: :down}
+  def do_turn(%{direction: :down} = state, :left), do: %{state | direction: :right}
+  def do_turn(%{direction: :right} = state, :left), do: %{state | direction: :up}
 
-  def turn(%{direction: :up} = state, :right), do: %{state | direction: :right}
-  def turn(%{direction: :left} = state, :right), do: %{state | direction: :up}
-  def turn(%{direction: :down} = state, :right), do: %{state | direction: :left}
-  def turn(%{direction: :right} = state, :right), do: %{state | direction: :down}
+  def do_turn(%{direction: :up} = state, :right), do: %{state | direction: :right}
+  def do_turn(%{direction: :left} = state, :right), do: %{state | direction: :up}
+  def do_turn(%{direction: :down} = state, :right), do: %{state | direction: :left}
+  def do_turn(%{direction: :right} = state, :right), do: %{state | direction: :down}
+
+  def do_turn(%{direction: :up} = state, :back), do: %{state | direction: :down}
+  def do_turn(%{direction: :left} = state, :back), do: %{state | direction: :right}
+  def do_turn(%{direction: :down} = state, :back), do: %{state | direction: :up}
+  def do_turn(%{direction: :right} = state, :back), do: %{state | direction: :left}
 
   @doc false
-  def toggle(state) do
-    case Map.get(state.nodes, state.current, :clean) do
-      :infected ->
-        %{state | nodes: Map.put(state.nodes, state.current, :clean)}
-
-      :clean ->
-        %{
-          state |
-          nodes: Map.put(state.nodes, state.current, :infected),
-          infections: state.infections + 1
-        }
+  def toggle(state, :normal) do
+    case state_of_current_node(state) do
+      :clean -> infect(state)
+      :infected -> clean(state)
     end
+  end
+
+  def toggle(state, :evolved) do
+    case state_of_current_node(state) do
+      :clean -> weaken(state)
+      :weakened -> infect(state)
+      :infected -> flag(state)
+      :flagged -> clean(state)
+    end
+  end
+
+  defp clean(state), do: %{state | nodes: Map.put(state.nodes, state.current, :clean)}
+  defp weaken(state), do: %{state | nodes: Map.put(state.nodes, state.current, :weakened)}
+  defp flag(state), do: %{state | nodes: Map.put(state.nodes, state.current, :flagged)}
+
+  defp infect(state) do
+    %{
+      state
+      | nodes: Map.put(state.nodes, state.current, :infected),
+        infections: state.infections + 1
+    }
+  end
+
+  defp state_of_current_node(state) do
+    Map.get(state.nodes, state.current, :clean)
   end
 
   @doc false
