@@ -21,6 +21,7 @@ defmodule FractalArt do
   is not rotated.
 
   1. How many pixels are on after 5 iterations?
+  2. How many pixels are on after 18 iterations?
   """
 
   @doc """
