@@ -34,6 +34,15 @@ defmodule ElectromagneticMoat do
     |> Enum.max()
   end
 
+  def longest_bridge(input) do
+    input
+    |> components()
+    |> possible_bridges()
+    |> Enum.sort_by(&(-bridge_strength(&1)))
+    |> Enum.max_by(&length/1)
+    |> bridge_strength()
+  end
+
   @doc """
   Returns all possible bridges we can build from the current bridge
 

@@ -9,4 +9,11 @@ defmodule ElectromagneticMoatTest do
       assert strongest_bridge(input) == 31
     end
   end
+
+  describe "longest_bridge/1" do
+    test "with a few components" do
+      input = "0/2\n2/2\n2/3\n3/4\n3/5\n0/1\n10/1\n9/10"
+      assert longest_bridge(input) == 19
+    end
+  end
 end
