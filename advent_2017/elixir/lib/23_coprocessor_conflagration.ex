@@ -30,20 +30,43 @@ defmodule CoprocessorConflagration do
   end
 
   @doc """
-  Run until limit (or finish) and get what's in register h
+  Run until limit, print debug output or finish, and return register
 
   We can manipulate some of the registers in the input to experiment.
   Stepping through iterations and inspecting state also proved very
   useful in reverse engineering.
   """
-  def whats_in_h(input, limit) do
+  def run_with_limit(input, limit) do
     input
     |> new()
     |> toggle_debug_mode()
     |> run(limit)
     |> Map.get(:register)
-    |> Map.get("h", 0)
   end
+
+  @doc """
+  Calculate register h on our own
+  """
+  def register_h(input) do
+    register = run_with_limit(input, 10)
+    b = register["b"]
+    c = register["c"]
+
+    step = div(c - b, 1000)
+
+    step_range(b, c, step, [])
+    |> Enum.count(&(!prime?(&1)))
+  end
+
+  defp step_range(b, c, _, numbers) when b > c, do: numbers
+  defp step_range(c, c, _, numbers), do: [c | numbers]
+  defp step_range(b, c, step, numbers), do: step_range(b + step, c, step, [b | numbers])
+
+  defp prime?(n), do: prime?(n, 2)
+  defp prime?(n, d) when d > div(n, d), do: true
+  defp prime?(n, d) when rem(n, d) == 0, do: false
+  defp prime?(n, 2), do: prime?(n, 3)
+  defp prime?(n, d), do: prime?(n, d + 2)
 
   def new(input), do: %__MODULE__{right: ops(input)}
 
@@ -53,10 +76,12 @@ defmodule CoprocessorConflagration do
 
   # Set limit to a negative number for unlimited runs
   defp run(state, limit \\ -1)
+
   defp run(state, 0) do
     IO.inspect(register: state.register, op: hd(state.right))
     state
   end
+
   defp run(%{right: []} = state, _), do: state
 
   defp run(%{right: [op | _]} = state, limit) do

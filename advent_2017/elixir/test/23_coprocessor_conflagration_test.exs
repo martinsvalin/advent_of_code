@@ -20,7 +20,7 @@ defmodule CoprocessorConflagrationTest do
       sub b 1
       mul a 2
       mul a 2
-      jgz b -3
+      jnz b -3
       """
 
       assert count_mul_ops(input) == 4
