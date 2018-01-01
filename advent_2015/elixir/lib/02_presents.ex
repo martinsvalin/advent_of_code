@@ -1,27 +1,22 @@
 defmodule Presents do
-  def wrapping do
-    presents
+  def total_wrapping(input) do
+    input
+    |> presents()
     |> Enum.map(&wrapping/1)
     |> Enum.sum
   end
 
-  def ribbon do
-    presents
+  def total_ribbon(input) do
+    input
+    |> presents()
     |> Enum.map(&ribbon/1)
     |> Enum.sum
   end
 
-  defp presents do
+  defp presents(input) do
     input
-    |> String.split
+    |> String.split()
     |> Enum.map(&dimensions/1)
-  end
-
-  @external_resource "#{__DIR__}/../input.txt"
-
-  defp input do
-    {:ok, content} = File.read(@external_resource)
-    content
   end
 
   defp dimensions(present) do
@@ -50,5 +45,3 @@ defmodule Presents do
     [2*w + 2*h, 2*w + 2*l, 2*h + 2*l]
   end
 end
-
-IO.puts "We need #{Presents.wrapping} sq feet of wrapping."
