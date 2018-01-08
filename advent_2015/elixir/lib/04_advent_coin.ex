@@ -28,7 +28,7 @@ defmodule AdventCoin do
 
   defp candidates(key) do
     all_numbers()
-    |> Stream.map(fn (n) -> {n, md5(key, n)} end)
+    |> Stream.map(fn n -> {n, md5(key, n)} end)
   end
 
   defp all_numbers do
@@ -36,7 +36,7 @@ defmodule AdventCoin do
   end
 
   defp md5(key, n) do
-    key <> Integer.to_string(n)
+    (key <> Integer.to_string(n))
     |> :erlang.md5()
     |> Base.encode16()
   end

@@ -13,8 +13,8 @@ defmodule SantaVisits do
     input
     |> to_charlist()
     |> visited()
-    |> Enum.uniq
-    |> Enum.count
+    |> Enum.uniq()
+    |> Enum.count()
   end
 
   @doc """
@@ -28,8 +28,8 @@ defmodule SantaVisits do
     robos = instructions |> Enum.drop(1) |> Enum.take_every(2)
 
     (visited(santas) ++ visited(robos))
-    |> Enum.uniq
-    |> Enum.count
+    |> Enum.uniq()
+    |> Enum.count()
   end
 
   @doc """
@@ -38,12 +38,12 @@ defmodule SantaVisits do
   Takes instructions to go up|down|left|right (in the form of ^ v < > codepoints).
   """
   def visited(instructions) do
-    Enum.reduce(instructions, [{0,0}], &follow_instructions/2)
+    Enum.reduce(instructions, [{0, 0}], &follow_instructions/2)
   end
-  
-  defp follow_instructions(?^, [{x, y}|_] = visited), do: [{x, y + 1} | visited]
-  defp follow_instructions(?v, [{x, y}|_] = visited), do: [{x, y - 1} | visited]
-  defp follow_instructions(?<, [{x, y}|_] = visited), do: [{x + 1, y} | visited]
-  defp follow_instructions(?>, [{x, y}|_] = visited), do: [{x - 1, y} | visited]
+
+  defp follow_instructions(?^, [{x, y} | _] = visited), do: [{x, y + 1} | visited]
+  defp follow_instructions(?v, [{x, y} | _] = visited), do: [{x, y - 1} | visited]
+  defp follow_instructions(?<, [{x, y} | _] = visited), do: [{x + 1, y} | visited]
+  defp follow_instructions(?>, [{x, y} | _] = visited), do: [{x - 1, y} | visited]
   defp follow_instructions(_, visited), do: visited
 end

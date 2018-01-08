@@ -1,6 +1,6 @@
 defmodule AdventCoinTest do
   use ExUnit.Case
-  
+
   @tag :slow
   describe "mine/2" do
     test "looking for 5 consecutive zeroes" do

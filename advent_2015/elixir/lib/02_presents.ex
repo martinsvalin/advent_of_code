@@ -3,14 +3,14 @@ defmodule Presents do
     input
     |> presents()
     |> Enum.map(&wrapping/1)
-    |> Enum.sum
+    |> Enum.sum()
   end
 
   def total_ribbon(input) do
     input
     |> presents()
     |> Enum.map(&ribbon/1)
-    |> Enum.sum
+    |> Enum.sum()
   end
 
   defp presents(input) do
@@ -28,20 +28,20 @@ defmodule Presents do
   defp wrapping(present) do
     present
     |> sides
-    |> Enum.sum
+    |> Enum.sum()
   end
 
-  defp sides([w,h,l]) do
-    [w*h, h*w, w*l, l*w, l*h, h*l]
+  defp sides([w, h, l]) do
+    [w * h, h * w, w * l, l * w, l * h, h * l]
   end
 
   defp ribbon(present) do
     present
     |> perimeters
-    |> Enum.min
+    |> Enum.min()
   end
 
-  defp perimeters([w,h,l]) do
-    [2*w + 2*h, 2*w + 2*l, 2*h + 2*l]
+  defp perimeters([w, h, l]) do
+    [2 * w + 2 * h, 2 * w + 2 * l, 2 * h + 2 * l]
   end
 end
