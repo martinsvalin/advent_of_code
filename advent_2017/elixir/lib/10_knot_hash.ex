@@ -87,7 +87,7 @@ defmodule KnotHash do
   """
   def dense_hash(ring) do
     ring
-    |> Enum.chunk(16)
+    |> Enum.chunk_every(16)
     |> Enum.map(fn chunk -> Enum.reduce(chunk, &Bitwise.bxor/2) end)
   end
 
