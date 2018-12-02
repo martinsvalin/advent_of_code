@@ -22,6 +22,22 @@ defmodule ChronalCalibration do
     |> first_repeat()
   end
 
+  def part2stream(file \\ @input_file) do
+    file
+    |> File.stream!()
+    |> Stream.map(&String.trim_trailing/1)
+    |> Stream.map(&String.to_integer/1)
+    |> Stream.cycle()
+    |> Enum.reduce_while({0, MapSet.new([0])}, fn change, {prev, all_seen} ->
+      new = prev + change
+
+      case Enum.member?(all_seen, new) do
+        true -> {:halt, new}
+        false -> {:cont, {new, MapSet.put(all_seen, new)}}
+      end
+    end)
+  end
+
   defp parse(string) do
     string
     |> String.trim_trailing()
