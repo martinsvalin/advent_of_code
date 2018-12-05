@@ -3,8 +3,8 @@ defmodule ReposeRecord do
   December 4 - Repose Record
 
   The problem can be found at https://adventofcode.com/2018/day/4
-  1. What is product of the ID and minute you chose?
-  2. ...
+  1. What is product of the ID and minute you chose by strategy 1?
+  2. What is the product, when choosing ID and minute by strategy 2?
   """
 
   @input_file Path.join([__DIR__, "..", "inputs", "04.txt"])
