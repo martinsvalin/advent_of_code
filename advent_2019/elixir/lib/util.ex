@@ -5,9 +5,11 @@ defmodule Util do
     File.read!(path)
   end
 
-  def numbers(file_contents) do
-    file_contents
-    |> String.split("\n", trim: true)
-    |> Enum.map(&String.to_integer/1)
+  def lines(day) do
+    file_contents(day) |> String.split("\n", trim: true)
+  end
+
+  def numbers(lines) do
+    Enum.map(lines, &String.to_integer/1)
   end
 end
