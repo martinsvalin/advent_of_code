@@ -1,4 +1,4 @@
-defmodule Intcode do
+defmodule ProgramAlarm do
   @moduledoc """
   # Day 2: 1202 Program Alarm
 
@@ -59,7 +59,7 @@ defmodule Intcode do
 
   ## Examples
 
-      iex> Intcode.run([1,0,0,3,99])
+      iex> run([1,0,0,3,99])
       [1,0,0,2,99]
   """
   @spec run([non_neg_integer()]) :: [non_neg_integer()]
