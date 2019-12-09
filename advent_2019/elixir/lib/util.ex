@@ -9,7 +9,11 @@ defmodule Util do
     file_contents(day) |> String.split("\n", trim: true)
   end
 
-  def numbers(lines) do
-    Enum.map(lines, &String.to_integer/1)
+  def numbers(day) when is_integer(day), do: day |> file_contents() |> numbers()
+
+  def numbers(file_contents) when is_binary(file_contents) do
+    file_contents
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.to_integer/1)
   end
 end

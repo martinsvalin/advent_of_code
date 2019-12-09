@@ -7,6 +7,6 @@ defmodule UtilTest do
   end
 
   test "numbers/1" do
-    assert numbers(["1", "2", "3"]) == [1, 2, 3]
+    assert numbers("1,2,3") == [1, 2, 3]
   end
 end

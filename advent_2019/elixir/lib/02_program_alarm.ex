@@ -24,7 +24,7 @@ defmodule ProgramAlarm do
   position 2 with 2.
   """
   def part1(code) do
-    code |> replace_noun_and_verb(12, 2) |> run()
+    code |> replace_noun_and_verb(12, 2) |> Intcode.run()
   end
 
   def replace_noun_and_verb(code, noun, verb) do
@@ -48,7 +48,10 @@ defmodule ProgramAlarm do
 
     {noun, verb} =
       Enum.find(pairs, fn {noun, verb} ->
-        code |> replace_noun_and_verb(noun, verb) |> run2() |> Map.get(0) == @answer
+        code
+        |> replace_noun_and_verb(noun, verb)
+        |> Intcode.run()
+        |> Map.get(0) == @answer
       end)
 
     noun * 100 + verb
@@ -56,6 +59,8 @@ defmodule ProgramAlarm do
 
   @doc """
   Runs an Intcode program until it exits, and returns the values at each position.
+
+  This implementation has been supersceded by the map-based one in `Intcode`.
 
   ## Examples
 
@@ -74,32 +79,6 @@ defmodule ProgramAlarm do
         run(List.replace_at(code, dst, product), position + 4)
 
       [99 | _] ->
-        code
-
-      _ ->
-        raise ArgumentError, message: "invalid program"
-    end
-  end
-
-  @doc "Alternate take on run/1, implemented with a map"
-  @spec run([non_neg_integer()] | map()) :: map()
-  def run2(code, index \\ 0)
-
-  def run2(code, _) when is_list(code) do
-    run2(for {value, i} <- Enum.with_index(code), into: %{}, do: {i, value})
-  end
-
-  def run2(code, index) do
-    case code[index] do
-      1 ->
-        sum = code[code[index + 1]] + code[code[index + 2]]
-        run2(Map.put(code, code[index + 3], sum), index + 4)
-
-      2 ->
-        product = code[code[index + 1]] * code[code[index + 2]]
-        run2(Map.put(code, code[index + 3], product), index + 4)
-
-      99 ->
         code
 
       _ ->
