@@ -62,37 +62,90 @@ defmodule Intcode do
   @spec run(%I{}) :: state()
   def run(%I{code: code, position: pos} = state) when is_map(state) do
     case instruction(Map.fetch!(code, pos)) do
+      # Addition
       {1, modes} ->
         [lhs, rhs] = values(2, code, pos, modes)
-        run(%{state | code: Map.put(code, code[pos + 3], lhs + rhs), position: pos + 4})
+        state |> write(pos + 3, lhs + rhs) |> advance(4) |> run()
 
+      # Multiplication
       {2, modes} ->
         [lhs, rhs] = values(2, code, pos, modes)
-        run(%{state | code: Map.put(code, code[pos + 3], lhs * rhs), position: pos + 4})
+        state |> write(pos + 3, lhs * rhs) |> advance(4) |> run()
 
+      # Input
       {3, _} ->
-        run(%{
-          state
-          | code: Map.put(code, code[pos + 1], hd(state.inputs)),
-            position: pos + 2,
-            inputs: tl(state.inputs)
-        })
+        state |> take_input() |> write(pos + 1) |> advance(2) |> run()
 
+      # Output
       {4, [mode]} ->
-        run(%{
-          state
-          | position: pos + 2,
-            outputs: [{pos, value(code, pos + 1, mode)} | state.outputs]
-        })
+        state |> output(value(code, pos + 1, mode)) |> advance(2) |> run()
 
+      # Jump if true
+      {5, modes} ->
+        [condition, destination] = values(2, code, pos, modes)
+
+        if(condition == 0) do
+          state |> advance(3) |> run()
+        else
+          state |> jump(destination) |> run()
+        end
+
+      # Jump if false
+      {6, modes} ->
+        [condition, destination] = values(2, code, pos, modes)
+
+        if(condition == 0) do
+          state |> jump(destination) |> run()
+        else
+          state |> advance(3) |> run()
+        end
+
+      # Less than
+      {7, modes} ->
+        [lhs, rhs] = values(2, code, pos, modes)
+        val = if(lhs < rhs, do: 1, else: 0)
+        state |> write(pos + 3, val) |> advance(4) |> run()
+
+      # Equals
+      {8, modes} ->
+        [lhs, rhs] = values(2, code, pos, modes)
+        val = if(lhs == rhs, do: 1, else: 0)
+        state |> write(pos + 3, val) |> advance(4) |> run()
+
+      # Terminate
       {99, _} ->
         state
 
+      # Unknown
       _ ->
         raise ArgumentError, message: "invalid program"
     end
   rescue
     KeyError -> raise ArgumentError, message: "invalid program"
+  end
+
+  def write(state, pos, value) do
+    %{state | code: Map.put(state.code, state.code[pos], value)}
+  end
+
+  def write({state, value}, pos) do
+    %{state | code: Map.put(state.code, state.code[pos], value)}
+  end
+
+  def advance(state, steps) do
+    %{state | position: state.position + steps}
+  end
+
+  def jump(state, pos) do
+    %{state | position: pos}
+  end
+
+  def output(%I{outputs: outs, position: pos} = state, out) do
+    %{state | outputs: [{pos, out} | outs]}
+  end
+
+  def take_input(%I{inputs: [head | tail]} = state) do
+    {%{state | inputs: tail}, head}
   end
 
   @spec to_code([integer()]) :: map()

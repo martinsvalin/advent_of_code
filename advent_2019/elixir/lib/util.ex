@@ -1,8 +1,11 @@
 defmodule Util do
-  def file_contents(day) do
-    filename = String.pad_leading(to_string(day), 2, "0") <> ".txt"
-    path = Path.join([__DIR__, "..", "inputs", filename])
-    File.read!(path)
+  def file_contents(day) when is_integer(day) do
+    file_contents(String.pad_leading(to_string(day), 2, "0") <> ".txt")
+  end
+
+  def file_contents(filename) do
+    Path.join([__DIR__, "..", "inputs", filename])
+    |> File.read!()
   end
 
   def lines(day) do
