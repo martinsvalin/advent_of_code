@@ -8,8 +8,12 @@ defmodule Util do
     |> File.read!()
   end
 
-  def lines(day) do
-    file_contents(day) |> String.split("\n", trim: true)
+  def lines(day) when is_integer(day) do
+    file_contents(day) |> lines()
+  end
+
+  def lines(file_contents) when is_binary(file_contents) do
+    file_contents |> String.split("\n", trim: true)
   end
 
   def numbers(day) when is_integer(day), do: day |> file_contents() |> numbers()
