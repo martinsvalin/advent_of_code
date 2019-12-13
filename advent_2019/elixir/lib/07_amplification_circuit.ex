@@ -13,21 +13,35 @@ defmodule AmplificationCircuit do
   circuit starts with 0.
   """
 
-  @phase_settings 0..4
-
   @doc """
   Part 1: What is the highest final signal?
   """
-  def part1(input) do
-    final_signals =
-      Enum.map(permutations(@phase_settings), fn phase_settings ->
-        Enum.reduce(phase_settings, 0, fn phase_setting, signal ->
-          [{_line, next_signal}] = Intcode.run(input, [phase_setting, signal]).outputs
-          next_signal
-        end)
-      end)
+  def part1(input), do: best_signal(input, 0..4)
 
-    Enum.max(final_signals)
+  @doc """
+  Part 2: What is the highest signal from a feedback loop?
+  """
+  def part2(input), do: best_signal(input, 5..9)
+
+  def best_signal(input, phases) do
+    phases
+    |> permutations()
+    |> Enum.map(&loop(input, &1, 0))
+    |> Enum.max()
+  end
+
+  def loop(input, phases, signal, states \\ %{})
+
+  def loop(_input, [], signal, _states), do: signal
+
+  def loop(input, [phase | phases], in_signal, states) do
+    case(run(Map.get(states, phase, input), phase, in_signal)) do
+      {:waiting, %Intcode{outputs: [signal | _]} = state} ->
+        loop(input, phases ++ [phase], signal, Map.put(states, phase, state))
+
+      %Intcode{outputs: [signal | _]} ->
+        loop(input, phases, signal, states)
+    end
   end
 
   def permutations(enum) when not is_list(enum), do: permutations(Enum.to_list(enum))
@@ -35,5 +49,13 @@ defmodule AmplificationCircuit do
 
   def permutations(list) when is_list(list) do
     for head <- list, tail <- permutations(list -- [head]), do: [head | tail]
+  end
+
+  defp run(list, phase, signal) when is_list(list) do
+    Intcode.run(list, [phase, signal])
+  end
+
+  defp run(%Intcode{} = state, _phase, signal) do
+    state |> Intcode.input(signal) |> Intcode.run()
   end
 end

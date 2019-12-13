@@ -2,10 +2,7 @@ defmodule AmplificationCircuitTest do
   use ExUnit.Case
   alias AmplificationCircuit, as: Day7
 
-  @examples "07_test.txt"
-            |> Util.file_contents()
-            |> Util.lines()
-            |> Enum.map(&Util.numbers/1)
+  @examples "07_test.txt" |> Util.file_contents() |> Util.lines() |> Enum.map(&Util.numbers/1)
 
   describe "part 1 puzzle examples" do
     test "example 1" do
@@ -22,12 +19,17 @@ defmodule AmplificationCircuitTest do
   end
 
   describe "part 2 puzzle examples" do
-    test "example 1" do
+    test "loop only the right phase" do
+      assert Day7.loop(example2_1(), [9, 8, 7, 6, 5], 0) == 139_629_729
+      assert Day7.loop(example2_2(), [9, 7, 8, 5, 6], 0) == 18216
+    end
+
+    test "example 1 in full glory" do
       assert Day7.part2(example2_1()) == 139_629_729
     end
 
     test "example 2" do
-      assert Day7.part2(example2_2) == 18216
+      assert Day7.part2(example2_2()) == 18216
     end
   end
 

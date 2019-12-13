@@ -74,7 +74,10 @@ defmodule Intcode do
 
       # Input
       {3, _} ->
-        state |> take_input() |> write(pos + 1) |> advance(2) |> run()
+        case take_input(state) do
+          :none -> {:waiting, state}
+          {new_state, input} -> new_state |> write(pos + 1, input) |> advance(2) |> run()
+        end
 
       # Output
       {4, [mode]} ->
@@ -121,14 +124,11 @@ defmodule Intcode do
         raise ArgumentError, message: "invalid program"
     end
   rescue
-    KeyError -> raise ArgumentError, message: "invalid program"
+    KeyError ->
+      raise ArgumentError, message: "invalid program"
   end
 
   def write(state, pos, value) do
-    %{state | code: Map.put(state.code, state.code[pos], value)}
-  end
-
-  def write({state, value}, pos) do
     %{state | code: Map.put(state.code, state.code[pos], value)}
   end
 
@@ -140,8 +140,16 @@ defmodule Intcode do
     %{state | position: pos}
   end
 
-  def output(%I{outputs: outs, position: pos} = state, out) do
-    %{state | outputs: [{pos, out} | outs]}
+  def output(%I{outputs: outs} = state, out) do
+    %{state | outputs: [out | outs]}
+  end
+
+  def input(%I{inputs: inputs} = state, value) do
+    %{state | inputs: [value | inputs]}
+  end
+
+  def take_input(%I{inputs: []}) do
+    :none
   end
 
   def take_input(%I{inputs: [head | tail]} = state) do

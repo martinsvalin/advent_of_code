@@ -15,30 +15,30 @@ defmodule IntcodeTest do
 
   test "day 5 puzzle example programs" do
     # position mode, equals
-    assert [{_, 1}] = run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [8]).outputs
-    assert [{_, 0}] = run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [-8]).outputs
+    assert run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [8]).outputs == [1]
+    assert run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [-8]).outputs == [0]
     # position mode, less than
-    assert [{_, 1}] = run([3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], [7]).outputs
-    assert [{_, 0}] = run([3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], [8]).outputs
+    assert run([3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], [7]).outputs == [1]
+    assert run([3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], [8]).outputs == [0]
     # immediate mode, equals
-    assert [{_, 1}] = run([3, 3, 1108, -1, 8, 3, 4, 3, 99], [8]).outputs
-    assert [{_, 0}] = run([3, 3, 1108, -1, 8, 3, 4, 3, 99], [9]).outputs
+    assert run([3, 3, 1108, -1, 8, 3, 4, 3, 99], [8]).outputs == [1]
+    assert run([3, 3, 1108, -1, 8, 3, 4, 3, 99], [9]).outputs == [0]
     # immediate mode, less than
-    assert [{_, 1}] = run([3, 3, 1107, -1, 8, 3, 4, 3, 99], [7]).outputs
-    assert [{_, 0}] = run([3, 3, 1107, -1, 8, 3, 4, 3, 99], [8]).outputs
+    assert run([3, 3, 1107, -1, 8, 3, 4, 3, 99], [7]).outputs == [1]
+    assert run([3, 3, 1107, -1, 8, 3, 4, 3, 99], [8]).outputs == [0]
     # jump
-    assert [{_, 0}] = run([3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9], [0]).outputs
-    assert [{_, 1}] = run([3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9], [8]).outputs
+    assert run([3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9], [0]).outputs == [0]
+    assert run([3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9], [8]).outputs == [1]
   end
 
   @longer_program Util.file_contents("05_test.txt") |> Util.numbers()
   test "day 5 with longer program example" do
     # less than 8 gives 999
-    assert [{_, 999}] = run(@longer_program, [7]).outputs
+    assert run(@longer_program, [7]).outputs == [999]
     # exactly 8 gives 1000
-    assert [{_, 1000}] = run(@longer_program, [8]).outputs
+    assert run(@longer_program, [8]).outputs == [1000]
     # greater than 8 gives 1001
-    assert [{_, 1001}] = run(@longer_program, [9]).outputs
+    assert run(@longer_program, [9]).outputs == [1001]
   end
 
   describe "operations" do
@@ -59,12 +59,12 @@ defmodule IntcodeTest do
     end
 
     test "output" do
-      assert run([4, 3, 99, 123]).outputs == [{0, 123}]
+      assert run([4, 3, 99, 123]).outputs == [123]
     end
 
     test "jump if true" do
       # true
-      assert run([5, 1, 4, 99, 4, 0, 99]).outputs == [{4, 5}]
+      assert run([5, 1, 4, 99, 4, 0, 99]).outputs == [5]
       # false
       assert run([105, 0, 4, 99, 4, 0, 99]).outputs == []
     end
@@ -73,7 +73,7 @@ defmodule IntcodeTest do
       # true
       assert run([6, 1, 4, 99, 4, 0, 99]).outputs == []
       # false
-      assert run([106, 0, 4, 99, 4, 0, 99]).outputs == [{4, 106}]
+      assert run([106, 0, 4, 99, 4, 0, 99]).outputs == [106]
     end
 
     test "less than" do
@@ -103,7 +103,18 @@ defmodule IntcodeTest do
     end
 
     test "output can be immediate mode" do
-      assert run([104, 123, 99]).outputs |> hd == {0, 123}
+      assert run([104, 123, 99]).outputs == [123]
+    end
+  end
+
+  describe "the program can pause waiting for input" do
+    test "waiting" do
+      assert {:waiting, _state} = run([3, 3, 99, 0])
+    end
+
+    test "resuming" do
+      {:waiting, state} = run([3, 3, 99, 0])
+      assert run(input(state, 123)).code[3] == 123
     end
   end
 
