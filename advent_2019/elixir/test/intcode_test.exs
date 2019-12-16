@@ -6,41 +6,6 @@ defmodule IntcodeTest do
     assert run([1, 0, 0, 3, 99]).code |> Map.values() == [1, 0, 0, 2, 99]
   end
 
-  test "day 2 puzzle example programs" do
-    assert run([1, 0, 0, 0, 99]).code |> Map.values() == [2, 0, 0, 0, 99]
-    assert run([2, 3, 0, 3, 99]).code |> Map.values() == [2, 3, 0, 6, 99]
-    assert run([2, 4, 4, 5, 99, 0]).code |> Map.values() == [2, 4, 4, 5, 99, 9801]
-    assert run([1, 1, 1, 4, 99, 5, 6, 0, 99]).code[0] == 30
-  end
-
-  test "day 5 puzzle example programs" do
-    # position mode, equals
-    assert run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [8]).outputs == [1]
-    assert run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], [-8]).outputs == [0]
-    # position mode, less than
-    assert run([3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], [7]).outputs == [1]
-    assert run([3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], [8]).outputs == [0]
-    # immediate mode, equals
-    assert run([3, 3, 1108, -1, 8, 3, 4, 3, 99], [8]).outputs == [1]
-    assert run([3, 3, 1108, -1, 8, 3, 4, 3, 99], [9]).outputs == [0]
-    # immediate mode, less than
-    assert run([3, 3, 1107, -1, 8, 3, 4, 3, 99], [7]).outputs == [1]
-    assert run([3, 3, 1107, -1, 8, 3, 4, 3, 99], [8]).outputs == [0]
-    # jump
-    assert run([3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9], [0]).outputs == [0]
-    assert run([3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9], [8]).outputs == [1]
-  end
-
-  @longer_program Util.file_contents("05_test.txt") |> Util.numbers()
-  test "day 5 with longer program example" do
-    # less than 8 gives 999
-    assert run(@longer_program, [7]).outputs == [999]
-    # exactly 8 gives 1000
-    assert run(@longer_program, [8]).outputs == [1000]
-    # greater than 8 gives 1001
-    assert run(@longer_program, [9]).outputs == [1001]
-  end
-
   describe "operations" do
     test "addition" do
       assert run([1, 0, 0, 5, 99, 0]).code[5] == 2
@@ -87,9 +52,13 @@ defmodule IntcodeTest do
       assert run([1108, 2, 2, 5, 99, 123]).code[5] == 1
       assert run([1108, 3, 2, 5, 99, 123]).code[5] == 0
     end
+
+    test "adjust relative base" do
+      assert run([109, 10, 99]).relative_base == 10
+    end
   end
 
-  describe "modes" do
+  describe "immediate mode" do
     test "addition in immediate mode for both operands" do
       assert run([1101, 10, 20, 5, 99, 0]).code[5] == 30
     end
@@ -104,6 +73,22 @@ defmodule IntcodeTest do
 
     test "output can be immediate mode" do
       assert run([104, 123, 99]).outputs == [123]
+    end
+  end
+
+  describe "relative mode" do
+    test "is the same as position mode if relative base is 0 (the default)" do
+      relative_mode = [2201, 3, 3, 5, 4, 5, 99, 0]
+      position_mode = [0001, 3, 3, 5, 4, 5, 99, 0]
+      assert run(relative_mode).outputs == run(position_mode).outputs
+    end
+
+    test "is offset by the relative base" do
+      assert run([109, 8, 2201, 0, 0, 9, 4, 9, 99, 0]).outputs == [99 + 99]
+    end
+
+    test "write position can be relative" do
+      assert run([109, 9, 21101, 10, 10, 0, 4, 9, 99, 0]).outputs == [20]
     end
   end
 
@@ -122,6 +107,10 @@ defmodule IntcodeTest do
     assert_raise(ArgumentError, fn -> run([1, 0, 0, 3]) end)
   end
 
+  test "programs can access memory that's not in the input" do
+    assert run([4, 1000, 99]).outputs == [0]
+  end
+
   test "instruction/1 returns instruction and list of modes" do
     assert instruction(101) == {1, [1]}
     assert instruction(1001) == {1, [0, 1]}
@@ -131,17 +120,24 @@ defmodule IntcodeTest do
     assert modes(10) == [0, 1]
   end
 
-  describe "values/4" do
-    setup(do: Intcode.to_code([1001, 0, 10, 3, 99]))
-
-    test "takes arity, code, current position and modes, returns values", code do
-      assert values(2, code, 0, [0, 1]) == [1001, 10]
+  describe "positions/4" do
+    test "takes arity, state, current position and modes, returns position to read or write" do
+      assert positions(2, load([1001, 0, 10, 3, 99]), 0, [0, 1]) == [0, 2]
     end
   end
 
-  describe "value/3 takes code, position and mode, returns value" do
-    setup(do: Intcode.to_code([1, 0, 10, 3, 99]))
-    test("in position mode", code, do: assert(value(code, 1, 0) == 1))
-    test("in immediate mode", code, do: assert(value(code, 2, 1) == 10))
+  describe "position/3 takes state, position and mode, returns position to read or write" do
+    test "in position mode" do
+      assert position(load([1001, 0, 10, 3, 99]), 1, 0) == 0
+    end
+
+    test "in immediate mode" do
+      assert position(load([1001, 0, 10, 3, 99]), 2, 1) == 2
+    end
+
+    test "in relative mode" do
+      state = %{load([2001, 0, 10, 3, 99]) | relative_base: -10}
+      assert position(state, 2, 2) == 0
+    end
   end
 end
