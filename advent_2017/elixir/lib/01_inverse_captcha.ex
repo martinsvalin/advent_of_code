@@ -1,6 +1,6 @@
 defmodule InverseCaptcha do
   @moduledoc """
-  December 1 – Inverse Captcha
+  December 1 - Inverse Captcha
 
   The problem can be found at http://adventofcode.com/2017/day/1
   1. Find the sum of all digits that match the next digit in the list

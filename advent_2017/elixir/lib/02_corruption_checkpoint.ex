@@ -1,6 +1,6 @@
 defmodule CorruptionCheckpoint do
   @moduledoc """
-  December 2 – Corruption Checkpoint
+  December 2 - Corruption Checkpoint
 
   The problem can be found at http://adventofcode.com/2017/day/2
   1. What is the checksum of the spreadsheet, as sum of line max-min difference
@@ -31,8 +31,8 @@ defmodule CorruptionCheckpoint do
     spreadsheet
     |> String.split("\n", trim: true)
     |> Enum.map(fn line ->
-         line |> String.split() |> Enum.map(&String.to_integer/1)
-       end)
+      line |> String.split() |> Enum.map(&String.to_integer/1)
+    end)
   end
 
   defp max_min_difference([]), do: 0

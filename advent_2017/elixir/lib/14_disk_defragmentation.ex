@@ -53,8 +53,8 @@ defmodule DiskDefragmentation do
     {connected, rest} =
       [MapSet.new([coord]) | regions]
       |> Enum.split_with(fn region ->
-           Enum.any?(adjacent(coord), &MapSet.member?(region, &1))
-         end)
+        Enum.any?(adjacent(coord), &MapSet.member?(region, &1))
+      end)
 
     [Enum.reduce(connected, &MapSet.union/2) | rest]
   end

@@ -88,10 +88,6 @@ defmodule ChronalCalibration do
     first_repeat(input, 0, MapSet.new([0]), input)
   end
 
-  defp first_repeat([], current, sums, original) do
-    first_repeat(original, current, sums, original)
-  end
-
   defp first_repeat([h | t], current, sums, original) do
     new_sum = h + current
 
@@ -100,5 +96,9 @@ defmodule ChronalCalibration do
     else
       first_repeat(t, new_sum, MapSet.put(sums, new_sum), original)
     end
+  end
+
+  defp first_repeat([], current, sums, original) do
+    first_repeat(original, current, sums, original)
   end
 end

@@ -1,6 +1,6 @@
 defmodule SubterraneanSustainability do
   @moduledoc """
-  December 12 - Inventory Management System
+  December 12 - Subterranean Sustainability
 
   The problem can be found at https://adventofcode.com/2018/day/12
   1. Sum pot numbers for pots with plants after 20 generations?
@@ -22,7 +22,7 @@ defmodule SubterraneanSustainability do
   def part2(string) when is_binary(string) do
     string
     |> parse()
-    |> find_repeated_pattern
+    |> find_repeated_pattern()
     |> fake_gen_50_billion()
     |> sum_pot_numbers()
   end
@@ -108,8 +108,7 @@ defmodule SubterraneanSustainability do
 
   def sum_pot_numbers(%{pots: pots, offset: offset}) do
     numbered_pots = Enum.with_index(to_charlist(pots), offset)
-    pots_with_plants = for {?#, i} <- numbered_pots, do: i
-    Enum.sum(pots_with_plants)
+    for {?#, i} <- numbered_pots, reduce: 0, do: (sum -> sum + i)
   end
 
   def parse(string) do

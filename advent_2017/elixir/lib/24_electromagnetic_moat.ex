@@ -18,9 +18,7 @@ defmodule ElectromagneticMoat do
   """
 
   @type bridge :: [component]
-  @type component :: {{component_port, component_port}, index}
-  @type component_port :: non_neg_integer
-  @type index :: non_neg_integer
+  @type component :: {non_neg_integer, non_neg_integer}
 
   @doc """
   What is the strength of the strongest bridge we can build from the components
@@ -48,11 +46,11 @@ defmodule ElectromagneticMoat do
 
   ## Examples
 
-      iex> possible_bridges([{{0, 1}, 0}, {{4, 1}, 1}, {{1, 2}, 2}])
+      iex> possible_bridges([{0, 1}, {4, 1}, {1, 2}])
       [
-        [{{1, 2}, 2}, {{0, 1}, 0}],
-        [{{4, 1}, 1}, {{0, 1}, 0}],
-        [{{0, 1}, 0}],
+        [{1, 2}, {0, 1}],
+        [{4, 1}, {0, 1}],
+        [{0, 1}],
         []
       ]
   """
@@ -69,8 +67,8 @@ defmodule ElectromagneticMoat do
 
   defp matching(components, port) do
     Enum.filter(components, fn
-      {{^port, _free}, _i} -> true
-      {{_free, ^port}, _i} -> true
+      {^port, _free} -> true
+      {_free, ^port} -> true
       _ -> false
     end)
   end
@@ -80,24 +78,24 @@ defmodule ElectromagneticMoat do
   end
 
   defp free_port([]), do: 0
-  defp free_port([{{0, free}, _}]), do: free
-  defp free_port([{{used, free}, _}, {{used, _}, _} | _]), do: free
-  defp free_port([{{used, free}, _}, {{_, used}, _} | _]), do: free
-  defp free_port([{{free, used}, _}, {{used, _}, _} | _]), do: free
-  defp free_port([{{free, used}, _}, {{_, used}, _} | _]), do: free
+  defp free_port([{0, free}]), do: free
+  defp free_port([{used, free}, {used, _} | _]), do: free
+  defp free_port([{used, free}, {_, used} | _]), do: free
+  defp free_port([{free, used}, {used, _} | _]), do: free
+  defp free_port([{free, used}, {_, used} | _]), do: free
 
   @doc """
   Return the strength of a bridge
 
   ## Examples
 
-      iex> bridge_strength([{{1,2}, 0}, {{3,4}, 1}])
+      iex> bridge_strength([{1,2}, {3,4}])
       10
   """
   @spec bridge_strength(bridge) :: non_neg_integer
   def bridge_strength(bridge) do
     bridge
-    |> Enum.map(fn {{port1, port2}, _} -> port1 + port2 end)
+    |> Enum.map(fn {port1, port2} -> port1 + port2 end)
     |> Enum.sum()
   end
 
@@ -106,12 +104,9 @@ defmodule ElectromagneticMoat do
   def components(input) do
     Regex.scan(~r/(\d+)\/(\d+)/, input)
     |> Enum.map(fn [_, port1, port2] ->
-         [port1, port2]
-         |> Enum.map(&String.to_integer/1)
-         |> Enum.sort()
-         |> List.to_tuple()
-       end)
-    |> Enum.sort()
-    |> Enum.with_index()
+      [port1, port2]
+      |> Enum.map(&String.to_integer/1)
+      |> List.to_tuple()
+    end)
   end
 end

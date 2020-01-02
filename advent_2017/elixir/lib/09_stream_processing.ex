@@ -1,7 +1,8 @@
 defmodule StreamProcessing do
   @moduledoc """
-  Day 9 - 
+  Day 9 - Stream Processing
 
+  The problem can be found at https://adventofcode.com/2017/day/9
   We're looking at a part of a stream of nested garbage groups. A stream contains
   groups of garbage. The groups are delimited by curly braces. Garbage is delimited
   by angle brackets. Exclamation mark escapes the following character.
