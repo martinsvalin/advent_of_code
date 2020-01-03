@@ -1,0 +1,6 @@
+day*.txt
+/build
+/.gradle
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
