@@ -1,7 +1,8 @@
+import advent2019.aoc.input
 import advent2019.intcode.Intcode
 
 fun main() {
-    val source = 1.javaClass.getResource("day02.txt").readText()
+    val source = input(2)
     println("Day 2, part 1: ${part1(source)}")
     println("Day 2, part 2: ${part2(source)}")
 }

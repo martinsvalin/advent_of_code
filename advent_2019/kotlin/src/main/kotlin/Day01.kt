@@ -1,8 +1,9 @@
 package advent2019.day01
 
+import advent2019.aoc.input
+
 fun main() {
-    val lines = 1.javaClass.getResource("day01.txt").readText().lines()
-    val mass = lines.map { it.toInt() }.sum()
+    val mass = input(1).lines().map { it.toInt() }.sum()
     println("Day 1, part 1: ${fuel(mass)}")
     println("Day 1, part 2: ${fuel_recursively(mass)}")
 }
