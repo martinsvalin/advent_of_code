@@ -8,11 +8,11 @@ fun main() {
 }
 
 /* Fuel for mass is mass divided by three rounded down, subtract 2 */
-fun fuel(mass: Int) : Int =
+fun fuel(mass: Int): Int =
     mass / 3 - 2
 
 /* Fuel for mass, accounting for added fuel */
-tailrec fun fuel_recursively(mass: Int, total: Int = 0) : Int {
+tailrec fun fuel_recursively(mass: Int, total: Int = 0): Int {
     val fuel = fuel(mass)
     return if (fuel > 0) {
         fuel_recursively(fuel, total + fuel)
