@@ -1,18 +1,18 @@
 defmodule PasswordPhilosophyTest do
   use ExUnit.Case
 
-  describe "count_valid_passwords_by_frequency/1" do
+  describe "count_valid_passwords_by_count/1" do
     test "where we want 1-3 `a` characters and have a valid password" do
-      assert PasswordPhilosophy.count_valid_passwords_by_frequency(["1-3 a: abc"]) == 1
+      assert PasswordPhilosophy.count_valid_passwords_by_count(["1-3 a: abc"]) == 1
     end
 
     test "where we want 1-3 `d` characters and have an invalid password" do
-      assert PasswordPhilosophy.count_valid_passwords_by_frequency(["1-3 d: abc"]) == 0
+      assert PasswordPhilosophy.count_valid_passwords_by_count(["1-3 d: abc"]) == 0
     end
 
     test "given example" do
       lines = ["1-3 a: abcde", "1-3 b: cdefg", "2-9 c: ccccccccc"]
-      assert PasswordPhilosophy.count_valid_passwords_by_frequency(lines) == 2
+      assert PasswordPhilosophy.count_valid_passwords_by_count(lines) == 2
     end
   end
 

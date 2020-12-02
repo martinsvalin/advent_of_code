@@ -1,39 +1,35 @@
 defmodule PasswordPhilosophy do
-  def count_valid_passwords_by_frequency(lines) do
-    lines
-    |> parse
-    |> character_frequency
-    |> Enum.count(&valid_frequencies?/1)
+  def count_valid_passwords_by_count(lines) do
+    count_valid_passwords(lines, &valid_count?/1)
   end
 
   def count_valid_passwords_by_position(lines) do
-    lines |> parse |> Enum.count(&valid_positions?/1)
+    count_valid_passwords(lines, &valid_positions?/1)
+  end
+
+  defp count_valid_passwords(lines, policy) do
+    lines |> parse |> Enum.count(policy)
   end
 
   defp parse(lines) when is_list(lines), do: Enum.map(lines, &parse/1)
 
   defp parse(line) when is_binary(line) do
-    [_full, first, last, <<char::utf8>>, password] = Regex.run(~r/(\d+)-(\d+) (.): (.+)/, line)
+    [_full, first, second, <<char::utf8>>, password] = Regex.run(~r/(\d+)-(\d+) (.): (.+)/, line)
 
     %{
       password: to_charlist(password),
       character: char,
-      range: String.to_integer(first)..String.to_integer(last)
+      range: String.to_integer(first)..String.to_integer(second)
     }
   end
 
-  defp character_frequency(list) when is_list(list), do: Enum.map(list, &character_frequency/1)
-
-  defp character_frequency(%{password: password} = map) do
-    Map.put_new(map, :frequencies, password |> Enum.frequencies())
-  end
-
-  defp valid_frequencies?(%{character: char, range: range, frequencies: frequencies}) do
-    frequencies[char] in range
+  defp valid_count?(%{character: char, range: range, password: password}) do
+    Enum.count(password, &(&1 == char)) in range
   end
 
   defp valid_positions?(%{character: char, range: first..second, password: password}) do
-    [Enum.at(password, first - 1), Enum.at(password, second - 1)]
-    |> Enum.count(&(&1 == char)) == 1
+    [first - 1, second - 1]
+    |> Enum.map(&Enum.at(password, &1))
+    |> Enum.count(&(char == &1)) == 1
   end
 end
