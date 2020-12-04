@@ -1,14 +1,19 @@
 defmodule Advent2020 do
-  def lines(day) do
-    day =
-      Integer.to_string(day)
-      |> String.pad_leading(2, "0")
+  def input(day) do
+    File.read!("input/#{pad_day(day)}")
+  end
 
-    File.read!("input/#{day}")
-    |> String.split("\n", trim: true)
+  def lines(day) do
+    input(day) |> String.split("\n", trim: true)
   end
 
   def numbers(day) do
     lines(day) |> Enum.map(&String.to_integer/1)
+  end
+
+  defp pad_day(day) do
+    day
+    |> Integer.to_string()
+    |> String.pad_leading(2, "0")
   end
 end
