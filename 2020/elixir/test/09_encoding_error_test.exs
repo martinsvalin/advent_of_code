@@ -24,17 +24,17 @@ defmodule EncodingErrorTest do
     576
   ]
 
-  describe "find_error/2 finds a number that isn't the sum of two numbers within the preamble window size" do
+  describe "find_invalid_number/2 finds a number that isn't the sum of two numbers within the preamble window size" do
     test "when the number immediately after the preamble is too big" do
-      assert EncodingError.find_error([1, 2, 3, 4, 5, 10, 15], 5) == 10
+      assert EncodingError.find_invalid_number([1, 2, 3, 4, 5, 10, 15], 5) == 10
     end
 
     test "when there is an error two numbers after the preamble" do
-      assert EncodingError.find_error([1, 2, 3, 4, 5, 6, 12, 14], 5) == 12
+      assert EncodingError.find_invalid_number([1, 2, 3, 4, 5, 6, 12, 14], 5) == 12
     end
 
     test "given example, with 5-number preamble" do
-      assert EncodingError.find_error(@given_example, 5) == 127
+      assert EncodingError.find_invalid_number(@given_example, 5) == 127
     end
   end
 
