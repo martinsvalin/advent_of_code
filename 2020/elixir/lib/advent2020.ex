@@ -3,8 +3,12 @@ defmodule Advent2020 do
     File.read!("input/#{pad_day(day)}")
   end
 
-  def lines(day) do
-    input(day) |> String.split("\n", trim: true)
+  def lines(day) when is_integer(day) do
+    input(day) |> lines()
+  end
+
+  def lines(string) do
+    String.split(string, "\n", trim: true)
   end
 
   def numbers(day) do
