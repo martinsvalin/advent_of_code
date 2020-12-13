@@ -146,7 +146,9 @@ defmodule SeatingSystemTest do
 
   describe "tick/2 with line-of-sight rules applied" do
     test "given example looks a bit different two ticks in" do
-      assert ticks(1..2, @example, &Seat.line_of_sight_rules/2) ==
+      rules = &Seat.line_of_sight_rules/2
+
+      assert @example |> tick(rules) |> tick(rules) ==
                """
                #.LL.LL.L#
                #LLLLLL.LL
@@ -162,14 +164,94 @@ defmodule SeatingSystemTest do
     end
   end
 
+  describe "line_of_sight_rules/2" do
+    test "occupied, with 6 visible occupied seats" do
+      seats =
+        Seat.parse("""
+        #.#.L
+        .....
+        #.#.L
+        .....
+        #.#.#
+        """)
+
+      assert Seat.line_of_sight_rules({{2, 2}, :occupied}, seats) == {{2, 2}, :empty}
+    end
+
+    test "occupied, with 5 visible occupied seats" do
+      seats =
+        Seat.parse("""
+        #.#.L
+        .....
+        #.#.L
+        .....
+        #.#.#
+        """)
+
+      assert Seat.line_of_sight_rules({{0, 2}, :occupied}, seats) == {{0, 2}, :empty}
+    end
+
+    test "occupied, with 4 visible occupied seats" do
+      seats =
+        Seat.parse("""
+        #.#.L
+        .....
+        #.#.L
+        .....
+        #.#.#
+        """)
+
+      assert Seat.line_of_sight_rules({{4, 2}, :occupied}, seats) == {{4, 2}, :occupied}
+    end
+
+    test "occupied, with 3 visible occupied seats" do
+      seats =
+        Seat.parse("""
+        #.#.L
+        .....
+        #.#.L
+        .....
+        #.#.#
+        """)
+
+      assert Seat.line_of_sight_rules({{0, 0}, :occupied}, seats) == {{0, 0}, :occupied}
+    end
+
+    test "occupied, with 2 visible occupied seats" do
+      seats =
+        Seat.parse("""
+        #.#.L
+        .....
+        #.#.L
+        .....
+        #.#.#
+        """)
+
+      assert Seat.line_of_sight_rules({{4, 4}, :occupied}, seats) == {{4, 4}, :occupied}
+    end
+
+    test "free, with 0 visible occupied seats" do
+      seats =
+        Seat.parse("""
+        #.#.L
+        ....L
+        #.#.L
+        .....
+        #.#.#
+        """)
+
+      assert Seat.line_of_sight_rules({{4, 1}, :empty}, seats) == {{4, 1}, :occupied}
+    end
+  end
+
   describe "parse/1" do
-    test "represents the seats as a map of positions, indicating empty or occupied" do
+    test "represents the seats as a map of positions, indicating empty or occupied, paired with max position" do
       assert Advent2020.lines(".L\nL#") |> Seat.parse() ==
-               %{{0, 1} => :empty, {1, 0} => :empty, {1, 1} => :occupied}
+               {%{{0, 1} => :empty, {1, 0} => :empty, {1, 1} => :occupied}, {2, 2}}
     end
 
     test "parses the given example" do
-      parsed = Advent2020.lines(@example) |> Seat.parse()
+      {parsed, {10, 10}} = Advent2020.lines(@example) |> Seat.parse()
       assert map_size(parsed) == 71
       assert Map.values(parsed) |> Enum.all?(&(&1 == :empty))
     end
