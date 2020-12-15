@@ -1,20 +1,52 @@
 defmodule DockingData do
   import Bitwise
 
-  def run(lines) do
-    lines
-    |> parse()
-    |> run(%{mask: {0, 0}, registers: %{}})
+  def run(lines, version \\ :v1)
+
+  def run(lines, :v1) do
+    lines |> parse() |> run_v1(%{mask: {0, 0}, registers: %{}})
   end
 
-  def run([], state), do: state.registers
-
-  def run([{:mask, zeros, ones, _} | instructions], state) do
-    run(instructions, %{state | mask: {zeros, ones}})
+  def run(lines, :v2) do
+    lines |> parse() |> run_v2(%{mask: {0, 0, []}, registers: %{}})
   end
 
-  def run([{:mem, register, value} | instructions], state) do
-    run(instructions, put_in(state, [:registers, register], mask(value, state.mask)))
+  def run_v1([], state), do: state.registers
+
+  def run_v1([{:mask, zeros, ones, _} | instructions], state) do
+    run_v1(instructions, %{state | mask: {zeros, ones}})
+  end
+
+  def run_v1([{:mem, register, value} | instructions], state) do
+    run_v1(instructions, put_in(state, [:registers, register], mask(value, state.mask)))
+  end
+
+  def run_v2([], state), do: state.registers
+
+  def run_v2([{:mask, _, ones, xs} | instructions], state) do
+    run_v2(instructions, %{state | mask: {ones, xs}})
+  end
+
+  def run_v2([{:mem, register, value} | instructions], state) do
+    run_v2(instructions, %{state | registers: write_to_registers(state, register, value)})
+  end
+
+  def write_to_registers(%{mask: {ones, xs}, registers: registers}, register, value) do
+    masks_from_xs(xs, ones)
+    |> Enum.reduce(registers, fn mask, map ->
+      Map.put(map, mask(register, mask), value)
+    end)
+  end
+
+  def masks_from_xs(xs, ones) do
+    zeros =
+      Enum.reduce(xs, [0], fn power, list ->
+        n = :math.pow(2, power) |> trunc()
+        Enum.map(list, &(&1 + n)) ++ list
+      end)
+      |> Enum.sort()
+
+    Enum.zip(zeros, Enum.reverse(zeros) |> Enum.map(&(&1 + ones)))
   end
 
   def mask(value, {zeros, ones}) do
