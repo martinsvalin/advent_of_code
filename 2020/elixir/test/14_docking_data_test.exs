@@ -22,13 +22,19 @@ defmodule DockingDataTest do
 
   describe "parse/1" do
     test "parses 'mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'" do
-      assert DockingData.parse(["mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"]) ==
-               [{:mask, 0, 0}]
+      assert [{:mask, 0, 0, xs}] =
+               DockingData.parse(["mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"])
+
+      assert xs == Enum.to_list(35..0)
     end
 
     test "parses 'mask = 010X1100101X00X01001X11010X111100X01'" do
-      assert DockingData.parse(["mask = 01XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX01"]) ==
-               [{:mask, (:math.pow(2, 35) + 2) |> trunc(), (:math.pow(2, 34) + 1) |> trunc()}]
+      zeros = (:math.pow(2, 35) + 2) |> trunc()
+      ones = (:math.pow(2, 34) + 1) |> trunc()
+      xs = Enum.to_list(33..2)
+
+      assert [{:mask, ^zeros, ^ones, ^xs}] =
+               DockingData.parse(["mask = 01XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX01"])
     end
 
     test "parses 'mem[123] = 456'" do
@@ -36,8 +42,8 @@ defmodule DockingDataTest do
     end
 
     test "parses example" do
-      assert DockingData.parse(@example) ==
-               [{:mask, 2, 64}, {:mem, 8, 11}, {:mem, 7, 101}, {:mem, 8, 0}]
+      assert [{:mask, 2, 64, _}, {:mem, 8, 11}, {:mem, 7, 101}, {:mem, 8, 0}] =
+               DockingData.parse(@example)
     end
   end
 end
