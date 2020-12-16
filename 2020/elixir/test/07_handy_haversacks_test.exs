@@ -48,11 +48,4 @@ defmodule HandyHaversacksTest do
                }
     end
   end
-
-  describe "build_tree/1" do
-    test "a single bag that holds no other bags" do
-      assert Handy.build_tree(["dotted black bags contain no other bags."]) ==
-               %{"dotted black" => []}
-    end
-  end
 end
