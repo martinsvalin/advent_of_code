@@ -1,7 +1,6 @@
 import { readFileSync } from "fs"
 
-let rawInput: string[] = readFileSync("../input/02").toString().split("\n")
-rawInput.pop()
+let rawInput: string[] = readFileSync("../input/02").toString().trim().split("\n")
 
 type direction = "forward" | "down" | "up"
 

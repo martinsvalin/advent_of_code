@@ -2,9 +2,9 @@ import { readFileSync } from "fs"
 
 let input = readFileSync("../input/01")
   .toString()
+  .trim()
   .split("\n")
   .map((n) => parseInt(n))
-input.pop()
 
 // Example:
 // > sliding_window([1,2,3,4,5,6], 3)

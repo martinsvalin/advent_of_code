@@ -2,8 +2,7 @@ import { readFileSync } from "fs"
 
 // let rawInput = "00100 11110 10110 10111 10101 01111 00111 11100 10000 11001 00010 01010".split(" ")
 
-let rawInput: string[] = readFileSync("../input/03").toString().split("\n")
-rawInput.pop()
+let rawInput: string[] = readFileSync("../input/03").toString().trim().split("\n")
 
 const HIGHBIT = 2 ** (rawInput[0].length - 1)
 
