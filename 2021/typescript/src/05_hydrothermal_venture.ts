@@ -29,32 +29,39 @@ let ventLines: ventLine[] = rawInput.map((line) => {
     return { direction: "horizontal", from: right, to: left, coordinates: [] }
   } else if (left.x === right.x && left.y < right.y) {
     return { direction: "horizontal", from: left, to: right, coordinates: [] }
-  } else if (left.x >= right.x && left.y === right.y) {
-    return { direction: "vertical", from: right, to: left, coordinates: [] }
-  } else if (left.x < right.x && left.y === right.y) {
+  } else if (left.y === right.y) {
     return { direction: "vertical", from: left, to: right, coordinates: [] }
   } else {
     return { direction: "diagonal", from: left, to: right, coordinates: [] }
   }
 })
 
-// Fill in each coordinate a line passes through, ignoring diagonal lines.
-ventLines.forEach((ventLine) => {
-  switch (ventLine.direction) {
-    case "vertical":
-      for (let x = ventLine.from.x; x <= ventLine.to.x; x++) {
-        ventLine.coordinates.push(new Coordinate(x, ventLine.from.y))
-      }
-      break
-    case "horizontal":
-      for (let y = ventLine.from.y; y <= ventLine.to.y; y++) {
-        ventLine.coordinates.push(new Coordinate(ventLine.from.x, y))
-      }
-      break
-    case "diagonal":
-      break
+// Fill in each coordinate a line passes through
+function fillCoordinates(ventLine: ventLine): void {
+  let [x, y] = [ventLine.from.x, ventLine.from.y]
+
+  // Determine the direction to move x and y, to go from `from` to `to`.
+  // We'll use this to step closer when iterating.
+  // Apologies for the nested ternary ;) but step is zero for some directions
+  let dx = ventLine.from.x === ventLine.to.x ? 0 : ventLine.from.x < ventLine.to.x ? 1 : -1
+  let dy = ventLine.from.y === ventLine.to.y ? 0 : ventLine.from.y < ventLine.to.y ? 1 : -1
+
+  // Don't forget the first coordinate
+  ventLine.coordinates.push(ventLine.from)
+
+  // To support horizontal, vertical and diagonal stepping,
+  // iterate until both x and y are at the destination coordinate
+  while (x !== ventLine.to.x || y !== ventLine.to.y) {
+    x = x + dx
+    y = y + dy
+    ventLine.coordinates.push(new Coordinate(x, y))
   }
-})
+}
+
+// Fill coordinates for horizontal and vertical lines, ignore diagonal for now
+ventLines
+  .filter(({ direction }) => ["horizontal", "vertical"].includes(direction))
+  .forEach(fillCoordinates)
 
 // With each vent line's full set of coordinates, we can now create a histogram
 // counting the vent lines that pass through each coordinate.
@@ -74,29 +81,8 @@ createHistogram(ventLines).forEach((val, key) => {
 
 console.log("part1", dangerousCoordinates.length)
 
-const increment = (n: number) => n + 1
-const decrement = (n: number) => n - 1
-
 // Now it's time to set the coordinates where diagonal vent lines pass through.
-ventLines
-  .filter(({ direction }) => direction === "diagonal")
-  .forEach((ventLine) => {
-    // Determine the direction to move x and y, to go from `from` to `to`.
-    // We'll use this to step closer when iterating.
-    let horizontalMove = ventLine.from.x < ventLine.to.x ? increment : decrement
-    let verticalMove = ventLine.from.y < ventLine.to.y ? increment : decrement
-    let [x, y] = [ventLine.from.x, ventLine.from.y]
-
-    ventLine.coordinates.push(ventLine.from)
-
-    // Since diagonal lines are always 45°, it doesn't matter stop at the final x or y.
-    // We'll reach both at the same time.
-    while (x != ventLine.to.x) {
-      x = horizontalMove(x)
-      y = verticalMove(y)
-      ventLine.coordinates.push(new Coordinate(x, y))
-    }
-  })
+ventLines.filter(({ direction }) => direction === "diagonal").forEach(fillCoordinates)
 
 // Collect the dangerous coordinates again, i.e. the ones with more than one vent line
 // Since the histogram is created for all lines (vertical, horizontal and diagonal),
