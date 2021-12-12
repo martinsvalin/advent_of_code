@@ -6,7 +6,18 @@ type result = { result: "ok"; stack: closing[] } | { result: "illegalCharacter";
 let lines: string[] = readFileSync("../input/10").toString().trim().split("\n")
 
 let chars: { [key: string]: closing } = { "(": ")", "[": "]", "{": "}", "<": ">" }
-let score: { [key: string]: number } = { ")": 3, "]": 57, "}": 1197, ">": 25137 }
+let syntaxScore: { [key: string]: number } = {
+  ")": 3,
+  "]": 57,
+  "}": 1197,
+  ">": 25137,
+}
+let autocompleteScore: { [key: string]: number } = {
+  ")": 1,
+  "]": 2,
+  "}": 3,
+  ">": 4,
+}
 
 function checkSyntax(line: string): result {
   let stack: closing[] = []
@@ -23,13 +34,23 @@ function checkSyntax(line: string): result {
   return { result: "ok", stack: stack }
 }
 
+let results = lines.map(checkSyntax)
+
 console.log(
   "part 1",
-  lines.map(checkSyntax).reduce((sum, result) => {
-    if (result.result === "ok") {
-      return sum
-    } else {
-      return sum + score[result.character]
-    }
-  }, 0)
+  results.reduce(
+    (sum, result) => (result.result === "ok" ? sum : sum + syntaxScore[result.character]),
+    0
+  )
 )
+
+let scores = results
+  .map((result) =>
+    result.result === "ok"
+      ? result.stack.reduce((score, char) => score * 5 + autocompleteScore[char], 0)
+      : 0
+  )
+  .filter((nonZero) => nonZero)
+  .sort((a, b) => a - b)
+
+console.log("part 2", scores[Math.floor(scores.length / 2)])
