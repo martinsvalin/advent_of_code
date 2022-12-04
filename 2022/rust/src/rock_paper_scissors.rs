@@ -4,35 +4,45 @@ enum RockPaperScissors {
     Scissors,
 }
 
+struct Game {
+    opponent: RockPaperScissors,
+    me: RockPaperScissors,
+}
+
 pub fn part1(input: &String) -> String {
     let total_score = input
         .lines()
         .map(|l| l.split(' ').collect::<Vec<&str>>())
+        .map(to_shapes)
         .map(|vec| score(vec))
         .sum::<i32>();
     format!("{}", total_score)
 }
 
-fn score(vec: Vec<&str>) -> i32 {
+fn to_shapes(strings: Vec<&str>) -> Game {
     use RockPaperScissors::*;
-    let opponent = match vec[0] {
+    let opponent = match strings[0] {
         "A" => Rock,
         "B" => Paper,
         "C" => Scissors,
         other => panic!("unexpected input {other:?}"),
     };
-    let me = match vec[1] {
+    let me = match strings[1] {
         "X" => Rock,
         "Y" => Paper,
         "Z" => Scissors,
         other => panic!("unexpected input {other:?}"),
     };
-    score_win(&opponent, &me) + score_shape(&me)
+    Game { opponent, me }
 }
 
-fn score_win(opponent: &RockPaperScissors, me: &RockPaperScissors) -> i32 {
+fn score(game: Game) -> i32 {
+    score_outcome(&game) + score_shape(&game.me)
+}
+
+fn score_outcome(game: &Game) -> i32 {
     use RockPaperScissors::*;
-    match (opponent, me) {
+    match (&game.opponent, &game.me) {
         (Rock, Paper) => 6,
         (Rock, Rock) => 3,
         (Rock, Scissors) => 0,
@@ -54,6 +64,35 @@ fn score_shape(shape: &RockPaperScissors) -> i32 {
     }
 }
 
-pub fn part2(_input: &String) -> String {
-    "well".to_string()
+pub fn part2(input: &String) -> String {
+    let total_score = input
+        .lines()
+        .map(|l| l.split(' ').collect::<Vec<&str>>())
+        .map(to_shapes_part2)
+        .map(|vec| score(vec))
+        .sum::<i32>();
+    format!("{}", total_score)
+}
+
+fn to_shapes_part2(strings: Vec<&str>) -> Game {
+    use RockPaperScissors::*;
+    let opponent = match strings[0] {
+        "A" => Rock,
+        "B" => Paper,
+        "C" => Scissors,
+        other => panic!("unexpected input {other:?}"),
+    };
+    let me = match (&opponent, strings[1]) {
+        (Rock, "X") => Scissors,     // X means Lose
+        (Rock, "Y") => Rock,         // Y means Draw
+        (Rock, "Z") => Paper,        // Z means Win
+        (Paper, "X") => Rock,        // X means Lose
+        (Paper, "Y") => Paper,       // Y means Draw
+        (Paper, "Z") => Scissors,    // Z means Win
+        (Scissors, "X") => Paper,    // X means Lose
+        (Scissors, "Y") => Scissors, // Y means Draw
+        (Scissors, "Z") => Rock,     // Z means Win
+        (_, other) => panic!("unexpected input {other:?}"),
+    };
+    Game { opponent, me }
 }
