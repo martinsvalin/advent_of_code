@@ -1,6 +1,6 @@
 use core::cmp::Ordering;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum RockPaperScissors {
     Rock,
     Paper,
@@ -10,18 +10,6 @@ enum RockPaperScissors {
 struct Game {
     opponent: RockPaperScissors,
     me: RockPaperScissors,
-}
-
-impl PartialEq for RockPaperScissors {
-    fn eq(self: &Self, rhs: &Self) -> bool {
-        use RockPaperScissors::*;
-        match (self, rhs) {
-            (Rock, Rock) => true,
-            (Paper, Paper) => true,
-            (Scissors, Scissors) => true,
-            _ => false,
-        }
-    }
 }
 
 impl PartialOrd for RockPaperScissors {
