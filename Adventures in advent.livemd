@@ -2255,11 +2255,11 @@ defmodule SeedToLocation do
   alias SeedMappings, as: Mappings
 
   @spec lookup(integer(), [Mappings.range_mapping()]) :: integer()
-  def lookup(source, mappings) do
-    Enum.find_value(mappings, source, fn {destination_range_start.._end, source_range} ->
-      if Enum.member?(source_range, source) do
-        source_range_start.._end = source_range
-        offset = source - source_range_start
+  def lookup(input, mappings) do
+    Enum.find_value(mappings, input, fn {destination_range_start.._end, source_range} ->
+      if Enum.member?(source_range, input) do
+        lower.._upper = source_range
+        offset = input - lower
         destination_range_start + offset
       end
     end)
@@ -2445,3 +2445,96 @@ Let's stop stepping through the example and talk about the different cases. An i
 * The input range can be contained in the mapping range. Then map it to a new range, and you're done (in this mapping step at least).
 * The input range can partially overlap the mapping range. Split the input range and map the overlapping part. That part is done. Proceed to the next mapping for the remaining piece of the input range.
 * The input range can fully overlap the mapping range. Split the input range into three parts, one lower, one overlapping, and one upper. Map the overlapping part, and proceed with the other two.
+
+```elixir
+defmodule RangeSplitter do
+  def fit_all(input_ranges, mappings) do
+    source_ranges = Enum.map(mappings, &elem(&1, 1))
+
+    Enum.reduce(input_ranges, [], fn range, done ->
+      fit_range([range], source_ranges, done)
+    end)
+  end
+
+  def fit_range([range | ranges], [source | source_tail] = source_ranges, done) do
+    case {range, source} do
+      {first..last, lower..upper} when last < lower or first > upper ->
+        # IO.inspect({range, source}, label: "disjoint")
+        # disjoint ranges, keep this range and try it on the next source range
+        fit_range([range | ranges], source_tail, done)
+
+      {first..last, lower..upper} when first >= lower and last <= upper ->
+        # IO.inspect({range, source}, label: "contained")
+        # fully contained, done with this range
+        fit_range(ranges, source_ranges, [range | done])
+
+      {first..last, lower..upper} when first < lower and last > upper ->
+        # IO.inspect({range, source}, label: "bigger")
+        # input range contains source range, split off both parts for further processing
+        # done with the slice that corresponds to the source range
+        fit_range(
+          [first..(lower - 1), (upper + 1)..last | ranges],
+          source_ranges,
+          [lower..upper | done]
+        )
+
+      {first..last, lower..upper} when first < lower and last >= lower and last <= upper ->
+        # IO.inspect({range, source}, label: "partial (input(overlap)source)")
+        # partial fit in first part of input range, split off last part for further processing
+        # done with first part
+        fit_range(
+          [first..(lower - 1) | ranges],
+          source_ranges,
+          [lower..last | done]
+        )
+
+      {first..last, lower..upper} when last > upper and first >= lower and first <= upper ->
+        # IO.inspect({range, source}, label: "partial (source(overlap)input)")
+        # partial fit in last part of input range, split off first part for further processing
+        # done with last part
+        fit_range(
+          [(upper + 1)..last | ranges],
+          source_ranges,
+          [first..upper | done]
+        )
+    end
+  end
+
+  # Done if all ranges fit in a source range already
+  def fit_range([], _source, done), do: done
+  # Done if all source ranges were considered. 
+  # We can have left-over ranges that map to themselves
+  def fit_range(ranges, [], done), do: ranges ++ done
+
+  def map_range(first..last = range, mappings) do
+    Enum.find_value(mappings, range, fn {destination_start.._, source_start.._ = source} ->
+      if Enum.member?(source, first) and Enum.member?(source, last) do
+        offset = destination_start - source_start
+        (first + offset)..(last + offset)
+      end
+    end)
+  end
+end
+```
+
+```elixir
+input = SeedMappings.parse(example)
+
+SeedRanges.from_seeds(input)
+|> RangeSplitter.fit_all(input.seed_to_soil)
+|> Enum.map(&RangeSplitter.map_range(&1, input.seed_to_soil))
+|> RangeSplitter.fit_all(input.soil_to_fertilizer)
+|> Enum.map(&RangeSplitter.map_range(&1, input.soil_to_fertilizer))
+|> RangeSplitter.fit_all(input.fertilizer_to_water)
+|> Enum.map(&RangeSplitter.map_range(&1, input.fertilizer_to_water))
+|> RangeSplitter.fit_all(input.water_to_light)
+|> Enum.map(&RangeSplitter.map_range(&1, input.water_to_light))
+|> RangeSplitter.fit_all(input.light_to_temperature)
+|> Enum.map(&RangeSplitter.map_range(&1, input.light_to_temperature))
+|> RangeSplitter.fit_all(input.temperature_to_humidity)
+|> Enum.map(&RangeSplitter.map_range(&1, input.temperature_to_humidity))
+|> RangeSplitter.fit_all(input.humidity_to_location)
+|> Enum.map(&RangeSplitter.map_range(&1, input.humidity_to_location))
+
+# RangeSplitter.fit_all([81..94, 57..69], input.fertilizer_to_water)
+```
