@@ -2412,10 +2412,10 @@ end
 ```
 
 ```elixir
-input = Advent.input(2023, 5) |> SeedMappings.parse()
-
-SeedRanges.from_seeds(input)
-|> BitSmarter.evenly_split_brute_force(input)
+# input = Advent.input(2023, 5) |> SeedMappings.parse()
+# 
+# SeedRanges.from_seeds(input)
+# |> BitSmarter.evenly_split_brute_force(input)
 ```
 
 But enough with the brute forcing! Splitting the ranges for the smaller batches gave an idea, though. But we can't treat the mapping as a unit the way `SeedToLocation.lookup_seed_location/2` does.
