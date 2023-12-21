@@ -2514,6 +2514,26 @@ defmodule RangeSplitter do
       end
     end)
   end
+
+  def map_seed_to_location(seed_ranges, input) do
+    seed_ranges
+    |> RangeSplitter.fit_all(input.seed_to_soil)
+    |> Enum.map(&RangeSplitter.map_range(&1, input.seed_to_soil))
+    |> RangeSplitter.fit_all(input.soil_to_fertilizer)
+    |> Enum.map(&RangeSplitter.map_range(&1, input.soil_to_fertilizer))
+    |> RangeSplitter.fit_all(input.fertilizer_to_water)
+    |> Enum.map(&RangeSplitter.map_range(&1, input.fertilizer_to_water))
+    |> RangeSplitter.fit_all(input.water_to_light)
+    |> Enum.map(&RangeSplitter.map_range(&1, input.water_to_light))
+    |> RangeSplitter.fit_all(input.light_to_temperature)
+    |> Enum.map(&RangeSplitter.map_range(&1, input.light_to_temperature))
+    |> RangeSplitter.fit_all(input.temperature_to_humidity)
+    |> Enum.map(&RangeSplitter.map_range(&1, input.temperature_to_humidity))
+    |> RangeSplitter.fit_all(input.humidity_to_location)
+    |> Enum.map(&RangeSplitter.map_range(&1, input.humidity_to_location))
+    |> Enum.map(fn first.._ -> first end)
+    |> Enum.min()
+  end
 end
 ```
 
@@ -2521,20 +2541,18 @@ end
 input = SeedMappings.parse(example)
 
 SeedRanges.from_seeds(input)
-|> RangeSplitter.fit_all(input.seed_to_soil)
-|> Enum.map(&RangeSplitter.map_range(&1, input.seed_to_soil))
-|> RangeSplitter.fit_all(input.soil_to_fertilizer)
-|> Enum.map(&RangeSplitter.map_range(&1, input.soil_to_fertilizer))
-|> RangeSplitter.fit_all(input.fertilizer_to_water)
-|> Enum.map(&RangeSplitter.map_range(&1, input.fertilizer_to_water))
-|> RangeSplitter.fit_all(input.water_to_light)
-|> Enum.map(&RangeSplitter.map_range(&1, input.water_to_light))
-|> RangeSplitter.fit_all(input.light_to_temperature)
-|> Enum.map(&RangeSplitter.map_range(&1, input.light_to_temperature))
-|> RangeSplitter.fit_all(input.temperature_to_humidity)
-|> Enum.map(&RangeSplitter.map_range(&1, input.temperature_to_humidity))
-|> RangeSplitter.fit_all(input.humidity_to_location)
-|> Enum.map(&RangeSplitter.map_range(&1, input.humidity_to_location))
+|> RangeSplitter.map_seed_to_location(input)
+|> IO.inspect(label: "example")
 
-# RangeSplitter.fit_all([81..94, 57..69], input.fertilizer_to_water)
+input = Advent.input(2023, 5) |> SeedMappings.parse()
+
+SeedRanges.from_seeds(input)
+|> RangeSplitter.map_seed_to_location(input)
+|> IO.inspect(label: "solution")
+
+"yay!"
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 6
