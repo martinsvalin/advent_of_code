@@ -1,0 +1,2439 @@
+<!-- livebook:{"file_entries":[{"name":"input_2022-12-01.txt","type":"attachment"},{"name":"input_2022-12-02.txt","type":"attachment"},{"name":"input_2022-12-03.txt","type":"attachment"},{"name":"input_2022-12-04.txt","type":"attachment"},{"name":"input_2022-12-05.txt","type":"attachment"},{"name":"input_2022-12-06.txt","type":"attachment"},{"name":"input_2022-12-07.txt","type":"attachment"},{"name":"input_2022-12-08.txt","type":"attachment"},{"name":"input_2023-12-01.txt","type":"attachment"},{"name":"input_2023-12-02.txt","type":"attachment"},{"name":"input_2023-12-03.txt","type":"attachment"},{"name":"input_2023-12-04.txt","type":"attachment"},{"name":"input_2023-12-05.txt","type":"attachment"}]} -->
+
+# Adventures in advent
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"},
+  {:req, "~> 0.4.5"}
+])
+```
+
+## Shared Advent functions
+
+Some useful utilities
+
+```elixir
+defmodule Advent do
+  @current_year 2023
+
+  defguard is_advent(year, day)
+           when year in 2015..@current_year and day in 1..25
+
+  def input(year, day, person \\ "input") when is_advent(year, day) and is_binary(person) do
+    day = Integer.to_string(day) |> String.pad_leading(2, "0")
+
+    "#{person}_#{year}-12-#{day}.txt"
+    |> Kino.FS.file_path()
+    |> File.read!()
+  end
+
+  def lines(year, day) when is_advent(year, day) do
+    input(year, day) |> lines()
+  end
+
+  def lines(year, day, person) when is_advent(year, day) and is_binary(person) do
+    input(year, day) |> lines()
+  end
+
+  def lines(string) when is_binary(string) do
+    String.split(string, "\n", trim: true)
+  end
+
+  def download(year, day) when is_advent(year, day) do
+    filename = "input_#{year}-12-#{String.pad_leading(Integer.to_string(day), 2, "0")}.txt"
+    url = "https://adventofcode.com/#{year}/day/#{day}/input"
+    headers = %{cookie: System.get_env("LB_ADVENT_OF_CODE_COOKIE")}
+
+    Kino.Download.new(
+      fn -> Req.get!(url, headers: headers).body end,
+      filename: filename
+    )
+  end
+end
+```
+
+## 🎄🎄 Advent of Code 2022 🎄🎄
+
+Advent of Code is a blast every year, and every year I evolve how I organize solutions and have fun solving the puzzles. Elixir is and has been for many years my favourite language to solve these puzzles in. I started off with simple scripts, or even working in the repl. Then I created Mix projects, with shared utilities, a module per day, sometimes test driven. I tried out behaviours for solution modules.
+
+Now I'm going with LiveBook. I suspect LiveBook is an excellent tool for puzzles. I can mix in paragraphs explaining the problem from AoC, capture my reasoning in prose, explore input data or intermediate transformations with Kino, and debug with `dbg`. It'll be great!
+
+Let's gooooo!
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 1: Calorie Counting
+
+We got some example input for these Elves counting calories:
+
+```elixir
+example1 = """
+1000
+2000
+3000
+
+4000
+
+5000
+6000
+
+7000
+8000
+9000
+
+10000
+"""
+```
+
+This list represents the Calories of the food carried by five Elves:
+
+* The first Elf is carrying food with 1000, 2000, and 3000 Calories, a total of **6000** Calories.
+* The second Elf is carrying one food item with **4000** Calories.
+* The third Elf is carrying food with 5000 and 6000 Calories, a total of **11000** Calories.
+* The fourth Elf is carrying food with 7000, 8000, and 9000 Calories, a total of **24000** Calories.
+* The fifth Elf is carrying one food item with **10000** Calories.
+
+### Part 1
+
+Find the Elf carrying the most Calories. How many total Calories is that Elf carrying?
+
+<!-- livebook:{"break_markdown":true} -->
+
+Sure. Split per Elf by the double newlines, and split, convert and sum each group of calories per Elf.
+
+```elixir
+total_calories_per_elf =
+  fn lines ->
+    lines
+    |> String.split()
+    |> Enum.map(&String.to_integer/1)
+    |> Enum.sum()
+  end
+
+part1 = fn input ->
+  input
+  |> String.split("\n\n")
+  |> Enum.map(total_calories_per_elf)
+  |> Enum.max()
+end
+
+part1.(example1)
+```
+
+Ok, let's do it for reals. My input is stored in the attachments, named with the date, like `input-yyyy-mm-dd.txt`. I wrote a little util to read my input files, `Advent.input/2`.
+
+```elixir
+part1.(Advent.input(2022, 1))
+```
+
+### Part 2
+
+Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
+
+```elixir
+part2 =
+  fn input ->
+    input
+    |> String.split("\n\n")
+    |> Enum.map(total_calories_per_elf)
+    |> Enum.sort_by(&-/1)
+    |> Enum.take(3)
+    |> Enum.sum()
+  end
+
+IO.puts("Example: #{part2.(example1)}")
+IO.puts("My input: #{part2.(Advent.input(2022, 1))}")
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 2: Rock Paper Scissors
+
+Scoring is kind of funny in this game of Rock Paper Scissors. Your score after a single round is the score for the **shape you selected** (1 for Rock, 2 for Paper, and 3 for Scissors) plus the score for the **outcome of the round** (0 if you lost, 3 if the round was a draw, and 6 if you won).
+
+```elixir
+defmodule RockPaperScissor do
+  @type shape() :: :rock | :paper | :scissors
+  @type game() :: %{you: shape(), opponent: shape()}
+
+  @spec shape_score(shape()) :: 1..3
+  defp shape_score(shape) do
+    case shape do
+      :rock -> 1
+      :paper -> 2
+      :scissors -> 3
+    end
+  end
+
+  @spec outcome_score(shape(), shape()) :: 0..6
+  defp outcome_score(you, opponent) do
+    case {you, opponent} do
+      # rock wins over scissors
+      {:rock, :scissors} -> 6
+      # scissors win over paper
+      {:scissors, :paper} -> 6
+      # paper wins over rock
+      {:paper, :rock} -> 6
+      {same, same} -> 3
+      _ -> 0
+    end
+  end
+
+  @doc """
+  Score a round of Rock Paper Scissors
+
+  Scoring is based on your shape, and the outcome (win, draw, lose). 
+
+  ## Example
+  """
+  @spec round_score(%{you: shape(), opponent: shape()}) :: 1..9
+  def round_score(%{you: you, opponent: opponent}) do
+    shape_score(you) + outcome_score(you, opponent)
+  end
+end
+```
+
+```elixir
+# Let's try it:
+[
+  RockPaperScissor.round_score(%{you: :paper, opponent: :rock}),
+  RockPaperScissor.round_score(%{you: :rock, opponent: :paper}),
+  RockPaperScissor.round_score(%{you: :scissors, opponent: :scissors})
+]
+|> IO.inspect()
+|> Enum.sum()
+```
+
+Here is a cryptic strategy guide an elf gave us:
+
+```elixir
+example = """
+A Y
+B X
+C Z
+"""
+```
+
+This strategy guide predicts and recommends the following:
+
+* In the first round, your opponent will choose Rock (A), and you should choose Paper (Y). This ends in a win for you with a score of **8** (2 because you chose Paper + 6 because you won).
+* In the second round, your opponent will choose Paper (B), and you should choose Rock (X). This ends in a loss for you with a score of **1** (1 + 0).
+* The third round is a draw with both players choosing Scissors, giving you a score of 3 + 3 = **6**.
+
+In this example, if you were to follow the strategy guide, you would get a total score of **15** (8 + 1 + 6).
+
+**What would your total score be if everything goes exactly according to your strategy guide?**
+
+<!-- livebook:{"break_markdown":true} -->
+
+Let's have a way to parse the input into something like:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+[
+  %{opponent: :rock, you: :paper},
+  %{opponent: :paper, you: :rock},
+  %{opponent: :scissors, you: :scissors},
+]
+```
+
+```elixir
+defmodule StrategyGuide do
+  @spec parse(String.t()) :: [RockPaperScissor.game()]
+  def parse(input) do
+    input
+    |> Advent.lines()
+    |> Enum.map(&parse_round/1)
+  end
+
+  @spec parse_round(String.t()) :: RockPaperScissor.game()
+  def parse_round(line) do
+    [opponent, you] = String.split(line, " ")
+    %{you: to_shape(you), opponent: to_shape(opponent)}
+  end
+
+  def to_shape(letter) do
+    case letter do
+      "A" -> :rock
+      "B" -> :paper
+      "C" -> :scissors
+      "X" -> :rock
+      "Y" -> :paper
+      "Z" -> :scissors
+    end
+  end
+end
+```
+
+```elixir
+Advent.input(2022, 2)
+|> StrategyGuide.parse()
+|> Enum.map(&RockPaperScissor.round_score/1)
+|> Enum.sum()
+```
+
+### Part 2
+
+So X, Y and Z didn't mean what we assumed. It's not specifying the shape, it's specifying the outcome. X means you need to lose, Y means you should end the round in a draw, Z means you should win.
+
+Let's implement a different strategy guide where we pick our shape based on what the opponent will pick:
+
+```elixir
+defmodule StrategyGuide2 do
+  @spec parse(String.t()) :: [RockPaperScissor.game()]
+  def parse(input) do
+    Enum.map(Advent.lines(input), &parse_round/1)
+  end
+
+  # The word "parse" isn't a great name when there's this amount of logic.
+  # We could parse the inputs more simply, to an intermediate structure
+  # of opponent shape and a rule for lose/draw/win, and so the logic of
+  # picking our shape is separate from the act of parsing.
+  # But we're just having fun here.
+  @spec parse_round(String.t()) :: RockPaperScissor.game()
+  def parse_round(line) do
+    [opponent, you] = String.split(line, " ")
+    opponent = to_shape(opponent)
+
+    you =
+      case you do
+        "X" -> lose(opponent)
+        "Y" -> draw(opponent)
+        "Z" -> win(opponent)
+      end
+
+    %{opponent: opponent, you: you}
+  end
+
+  def to_shape(letter) do
+    case letter do
+      "A" -> :rock
+      "B" -> :paper
+      "C" -> :scissors
+    end
+  end
+
+  def lose(:rock), do: :scissors
+  def lose(:paper), do: :rock
+  def lose(:scissors), do: :paper
+
+  def draw(shape), do: shape
+
+  def win(:rock), do: :paper
+  def win(:paper), do: :scissors
+  def win(:scissors), do: :rock
+end
+```
+
+```elixir
+Advent.input(2022, 2)
+|> StrategyGuide2.parse()
+|> Enum.map(&RockPaperScissor.round_score/1)
+|> Enum.sum()
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 3: Rucksack Reorganization
+
+Each line of input represent items in a rucksack, by lower and upper case letters. The rucksack has two compartments, with the same number of items in each.
+
+Items of the same type are meant to go in only one of the two compartments, but the elf who did the packing failed to follow this rule for exactly one item type per rucksack.
+
+```elixir
+## Example input
+example = """
+vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg
+wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+ttgJtRGJQctTZtZT
+CrZsJsPPZsGzwwsLwLmpwMDw
+"""
+```
+
+* The first rucksack contains the items `vJrwpWtwJgWrhcsFMMfFFhFp`, which means its first compartment contains the items `vJrwpWtwJgWr`, while the second compartment contains the items `hcsFMMfFFhFp`. The only item type that appears in both compartments is lowercase <kbd>p</kbd>.
+* The second rucksack's compartments contain `jqHRNqRjqzjGDLGL` and `rsFMfFZSrLrFZsSL`. The only item type that appears in both compartments is uppercase <kbd>L</kbd>.
+* The third rucksack's compartments contain `PmmdzqPrV` and `vPwwTWBwg`; the only common item type is uppercase P.
+* The fourth rucksack's compartments only share item type <kbd>v</kbd>.
+* The fifth rucksack's compartments only share item type <kbd>t</kbd>.
+* The sixth rucksack's compartments only share item type <kbd>s</kbd>.
+
+<!-- livebook:{"break_markdown":true} -->
+
+Every item has a priority:
+
+* Lowercase item types a through z have priorities 1 through 26.
+* Uppercase item types A through Z have priorities 27 through 52.
+
+In the above example, the priority of the item type that appears in both compartments of each rucksack is 16 (p), 38 (L), 42 (P), 22 (v), 20 (t), and 19 (s); the sum of these is **157**.
+
+Find the item type that appears in both compartments of each rucksack. **What is the sum of the priorities of those item types?**
+
+```elixir
+defmodule RuckSack do
+  @type contents() :: MapSet.t(item())
+  @type item() :: ?a..?z | ?A..?Z
+  @type priority :: 1..52
+
+  @spec compartments(String.t()) :: [contents()]
+  def compartments(line) do
+    half = div(byte_size(line), 2)
+
+    {first, second} =
+      line
+      |> to_charlist()
+      |> Enum.split(half)
+
+    [MapSet.new(first), MapSet.new(second)]
+  end
+
+  @spec overlap([contents()]) :: char()
+  def overlap(contents) do
+    [item] =
+      Enum.reduce(contents, &MapSet.intersection/2)
+      |> Enum.to_list()
+
+    item
+  end
+
+  def priority(item) when item in ?a..?z do
+    item - ?a + 1
+  end
+
+  def priority(item) when item in ?A..?Z do
+    item - ?A + 27
+  end
+
+  # For Part 2 ...
+
+  @spec contents(String.t()) :: contents()
+  def contents(line) do
+    line
+    |> to_charlist()
+    |> MapSet.new()
+  end
+end
+```
+
+In the given example, the priority of the item type that appears in both compartments of each rucksack is 16 (p), 38 (L), 42 (P), 22 (v), 20 (t), and 19 (s); the sum of these is **157**.
+
+```elixir
+example
+|> Advent.lines()
+|> Enum.map(&RuckSack.compartments/1)
+|> Enum.map(&RuckSack.overlap/1)
+|> Enum.map(&RuckSack.priority/1)
+|> IO.inspect()
+|> Enum.sum()
+```
+
+```elixir
+Advent.lines(2022, 3)
+|> Enum.map(fn line ->
+  line
+  |> RuckSack.compartments()
+  |> RuckSack.overlap()
+  |> RuckSack.priority()
+end)
+|> Enum.sum()
+```
+
+### Part 2
+
+Elves are in groups of three, in consecutive lines. Each group has one item type that they all carry. It is the only item type carried by all.
+
+For the example given, in the first group, the only item type that appears in all three rucksacks is lowercase <kbd>r</kbd>; this must be their badges. In the second group, their badge item type must be <kbd>Z</kbd>.
+
+Priorities for these items must still be found to organize the sticker attachment efforts: here, they are 18 (r) for the first group and 52 (Z) for the second group. The sum of these is **70**.
+
+Find the item type that corresponds to the badges of each three-Elf group. **What is the sum of the priorities of those item types?**
+
+```elixir
+example
+|> Advent.lines()
+|> Enum.map(&RuckSack.contents/1)
+|> Enum.chunk_every(3)
+|> Enum.map(&RuckSack.overlap/1)
+|> Enum.map(&RuckSack.priority/1)
+|> Enum.sum()
+```
+
+```elixir
+Advent.lines(2022, 3)
+|> Enum.map(&RuckSack.contents/1)
+|> Enum.chunk_every(3)
+|> Enum.map(&RuckSack.overlap/1)
+|> Enum.map(&RuckSack.priority/1)
+|> Enum.sum()
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 4: Camp Cleanup
+
+Space needs to be cleared before the last supplies can be unloaded from the ships, and so several Elves have been assigned the job of cleaning up sections of the camp. Every section has a unique **ID number**, and each Elf is assigned a range of section IDs.
+
+However, as some of the Elves compare their section assignments with each other, they've noticed that many of the assignments overlap. To try to quickly find overlaps and reduce duplicated effort, the Elves pair up and make a **big list of the section assignments for each pair** (your puzzle input).
+
+For example, consider the following list of section assignment pairs:
+
+```elixir
+example =
+  """
+  2-4,6-8
+  2-3,4-5
+  5-7,7-9
+  2-8,3-7
+  6-6,4-6
+  2-6,4-8
+  """
+  |> Advent.lines()
+```
+
+For the first few pairs, this list means:
+
+* Within the first pair of Elves, the first Elf was assigned sections 2-4 (sections 2, 3, and 4), while the second Elf was assigned sections 6-8 (sections 6, 7, 8).
+* The Elves in the second pair were each assigned two sections.
+* The Elves in the third pair were each assigned three sections: one got sections 5, 6, and 7, while the other also got 7, plus 8 and 9.
+
+Visually, these pairs of section assignments look like this:
+
+```
+.234.....  2-4
+.....678.  6-8
+
+.23......  2-3
+...45....  4-5
+
+....567..  5-7
+......789  7-9
+
+.2345678.  2-8
+..34567..  3-7
+
+.....6...  6-6
+...456...  4-6
+
+.23456...  2-6
+...45678.  4-8
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+Some of the pairs have noticed that one of their assignments **fully contains** the other. For example, 2-8 fully contains 3-7, and 6-6 is fully contained by 4-6. In pairs where one assignment fully contains the other, one Elf in the pair would be exclusively cleaning sections their partner will already be cleaning, so these seem like the most in need of reconsideration. In this example, there are 2 such pairs.
+
+**In how many assignment pairs does one range fully contain the other?**
+
+<!-- livebook:{"break_markdown":true} -->
+
+🤔 Ranges, you say? The `MapSet.subset?/2` tingles, but it might be expensive to build those sets if the ranges are large. And in this case, we can simply compare the ends of the ranges.
+
+```elixir
+subset = fn a..b, x..y ->
+  x >= a and y <= b
+end
+
+# true
+subset.(100..10_000, 200..300)
+# false, but overlapping
+subset.(500..1000, 100..600)
+# true, same
+subset.(10..20, 10..20)
+# false, disjoint
+subset.(10..20, 30..40)
+```
+
+```elixir
+defmodule Cleaning do
+  @type pair() :: {Range.t(), Range.t()}
+
+  @spec pairs(String.t()) :: pair()
+  def pairs(line) do
+    line
+    |> String.split(",")
+    |> Enum.map(&to_range/1)
+    |> List.to_tuple()
+  end
+
+  @spec to_range(String.t()) :: Range.t()
+  def to_range(string) do
+    [first, last] = String.split(string, "-")
+    {first, ""} = Integer.parse(first)
+    {last, ""} = Integer.parse(last)
+    first..last
+  end
+
+  @spec big_and_small(pair()) :: pair()
+  def big_and_small({first, second}) do
+    if Range.size(first) > Range.size(second) do
+      {first, second}
+    else
+      {second, first}
+    end
+  end
+
+  @spec fully_contained?(pair()) :: boolean()
+  def fully_contained?({big_first..big_last, small_first..small_last}) do
+    big_first <= small_first and big_last >= small_last
+  end
+end
+```
+
+```elixir
+example
+|> Enum.map(&Cleaning.pairs/1)
+|> Enum.map(&Cleaning.big_and_small/1)
+|> Enum.count(&Cleaning.fully_contained?/1)
+```
+
+```elixir
+Advent.lines(2022, 4)
+|> Enum.count(fn line ->
+  line
+  |> Cleaning.pairs()
+  |> Cleaning.big_and_small()
+  |> Cleaning.fully_contained?()
+end)
+```
+
+### Part 2
+
+It seems like there is still quite a bit of duplicate work planned. Instead, the Elves would like to know the number of pairs that overlap at all.
+
+In the above example, the first two pairs (`2-4,6-8` and `2-3,4-5`) don't overlap, while the remaining four pairs (`5-7,7-9`, `2-8,3-7`, `6-6,4-6`, and `2-6,4-8`) do overlap:
+
+* `5-7,7-9` overlaps in a single section, 7.
+* `2-8,3-7` overlaps all of the sections 3 through 7.
+* `6-6,4-6` overlaps in a single section, 6.
+* `2-6,4-8` overlaps in sections 4, 5, and 6.
+
+So, in this example, the number of overlapping assignment pairs is 4.
+
+**In how many assignment pairs do the ranges overlap?**
+
+<!-- livebook:{"break_markdown":true} -->
+
+😏 Know Thy Standard Library! Overlapping is the opposite of disjoint. `Range.disjoint?/2` was introduced in Elixir 1.8.0. We won't have to add anything else.
+
+```elixir
+Enum.count(example, fn line ->
+  {first, second} = Cleaning.pairs(line)
+  not Range.disjoint?(first, second)
+end)
+```
+
+```elixir
+Enum.count(Advent.lines(2022, 4), fn line ->
+  {first, second} = Cleaning.pairs(line)
+  not Range.disjoint?(first, second)
+end)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 5: Supply Stacks
+
+We are given stacks of crates in a starting position, and can move crates between stacks with a giant crane. The crane operator follows a rearrangement procedure that is also part of the puzzle input.
+
+```elixir
+example = """
+    [D]    
+[N] [C]    
+[Z] [M] [P]
+ 1   2   3 
+
+move 1 from 2 to 1
+move 3 from 1 to 3
+move 2 from 2 to 1
+move 1 from 1 to 2
+"""
+```
+
+As you can see, a move may involve several crates, but they are moved one at a time. The second move procedure moves this stack:
+
+```
+[D]        
+[N] [C]    
+[Z] [M] [P]
+ 1   2   3 
+```
+
+To this, one crate at a time from stack 1 to stack 3, so that the order is reversed:
+
+```
+        [Z]
+        [N]
+    [C] [D]
+    [M] [P]
+ 1   2   3
+```
+
+After all the moves, the crate on top of each stack spell out a word. The example input spells out **CMZ** after all four moves are performed.
+
+**After the rearrangement procedure completes, what crate ends up on top of each stack?**
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Data structures
+
+In Elixir, the obvious choice is to **represent stacks as linked lists**, where the head represents the top of the stack.
+
+There are some alternatives available for **representing the collection of stacks**. We'll jump around between stacks a fair bit. If the stack collection is large, a map might be good. If the stack collection size is small and known, a tuple could be good. The size _is_ static in the sense that I can have a look at the puzzle input. There are nine stack. I don't know if that's the case for all puzzle inputs, and the example has three stacks.
+
+So let's make a **simple list of stacks**. The number of stacks seems low, so walking the list won't add up all that much.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Parsing input
+
+Parsing the input looks like fun! First off, the starting stack configuration and the rearrangement procedure are separated by an empty line. Move instructions look straight-forward to parse. The stack configuration less so. 😅
+
+Let's have a second look:
+
+```
+    [D]    
+[N] [C]    
+[Z] [M] [P]
+ 1   2   3 
+```
+
+I've checked, and there is whitespace going the full width, meaning the lines are the same length. We can chunk each line four characters at a time, being mindful that the last chunk will have three characters (the newline is removed when splitting lines). The number of chunks is the number of stacks, and we can build the stacks top-down and reverse them in the end.
+
+The last line of stacks can probably be safely omitted. It'll be encoded by the list element index + 1.
+
+Let's go!
+
+```elixir
+defmodule Crates do
+  @type stacks() :: [[crate()]]
+  @type crate() :: ?A..?Z | :empty
+
+  @type procedure() :: [{move(), from(), to()}]
+  # Maybe this is a bit overkill. But types act as documentation
+  @type move() :: pos_integer()
+  @type from() :: pos_integer()
+  @type to() :: pos_integer()
+
+  @spec parse_input(String.t()) :: {stacks(), [procedure()]}
+  def parse_input(input) do
+    [stacks, procedures] = String.split(input, "\n\n")
+
+    {parse_stacks(stacks), parse_procedures(procedures)}
+  end
+
+  @spec parse_stacks(String.t()) :: stacks()
+  def parse_stacks(string) do
+    Enum.map(Advent.lines(string), fn line ->
+      line
+      |> to_charlist()
+      |> Enum.chunk_every(4, 4, ~c" ")
+      |> Enum.map(&parse_crate/1)
+    end)
+    |> List.zip()
+    |> Enum.map(&Tuple.to_list/1)
+    |> Enum.map(fn stack -> Enum.reject(stack, &(&1 == :empty)) end)
+  end
+
+  @spec parse_crate([charlist()]) :: [crate()]
+  def parse_crate(chars) do
+    case chars do
+      [?[, letter, ?], ?\s] -> letter
+      _ -> :empty
+    end
+  end
+
+  @spec parse_procedures(String.t()) :: [procedure()]
+  def parse_procedures(string) do
+    Enum.map(Advent.lines(string), &parse_procedure/1)
+  end
+
+  def parse_procedure(string, procedure \\ {0, 0, 0})
+
+  def parse_procedure("move " <> move_and_rest, {_, from, to}) do
+    {move, rest} = Integer.parse(move_and_rest)
+    parse_procedure(rest, {move, from, to})
+  end
+
+  def parse_procedure(" from " <> from_and_rest, {move, _, to}) do
+    {from, rest} = Integer.parse(from_and_rest)
+    parse_procedure(rest, {move, from, to})
+  end
+
+  def parse_procedure(" to " <> to_and_rest, {move, from, _}) do
+    {to, _} = Integer.parse(to_and_rest)
+    {move, from, to}
+  end
+
+  def print_stacks({stacks, _}), do: print_stacks(stacks)
+
+  def print_stacks(stacks) when is_list(stacks) do
+    stacks |> Enum.join("\n") |> IO.puts()
+  end
+end
+```
+
+Let's try that out on example input. Our print function lays out the stacks in rows rather than columns, but it's all the same.
+
+```elixir
+Crates.parse_input(example) |> Crates.print_stacks()
+Crates.parse_input(example) |> elem(1)
+```
+
+```elixir
+Crates.parse_input(Advent.input(2022, 5)) |> Crates.print_stacks()
+Crates.parse_input(Advent.input(2022, 5)) |> elem(1)
+```
+
+### Time to move some crates!
+
+We'll implement following the instructions in a separate module `Crane` (dangerously similar name to `Crates` 😬).
+
+First, I just have to freshen up on `Kernel.pop_in/2`, `Kernel.put_in/2` and `Access` protocol. It's a handy way of manipulating nested structures.
+
+```elixir
+nested = [Crates.parse_input(example) |> elem(0)]
+
+# exploring `Kernel.pop_in/2` and `Access.at/1`
+pop_in(nested, [Access.at(0), Access.at(0)])
+|> IO.inspect()
+
+# exploring put_in/2
+put_in(nested, [Access.at(2)], [?X | Enum.at(nested, 2)])
+|> IO.inspect()
+
+:ok
+```
+
+```elixir
+defmodule CrateMover9000 do
+  @spec move_crates(Crates.stacks(), Crates.procedure()) :: Crates.stacks()
+  def move_crates(stacks, {0, _from, _to}), do: stacks
+
+  def move_crates(stacks, {move, from, to}) do
+    # almost tempted to do stacks1, stacks2, stacks3, erlang style. Almost!
+    {popped, stacks} = pop_in(stacks, [Access.at(from - 1), Access.at(0)])
+    stacks = put_in(stacks, [Access.at(to - 1)], [popped | Enum.at(stacks, to - 1)])
+
+    move_crates(stacks, {move - 1, from, to})
+  end
+end
+```
+
+```elixir
+{stacks, procedures} = Crates.parse_input(example)
+
+Enum.reduce(procedures, stacks, fn procedure, stacks ->
+  CrateMover9000.move_crates(stacks, procedure)
+end)
+|> Crates.print_stacks()
+```
+
+```elixir
+{stacks, procedures} = Crates.parse_input(Advent.input(2022, 5))
+
+Enum.reduce(procedures, stacks, fn procedure, stacks ->
+  CrateMover9000.move_crates(stacks, procedure)
+end)
+|> tap(fn stacks ->
+  solution = Enum.map(stacks, &hd/1)
+  IO.puts("Solution: #{solution}")
+  IO.puts("")
+end)
+|> Crates.print_stacks()
+```
+
+Phew! Time for…
+
+### Part 2
+
+To your horror, you realize this crane isn't a CrateMover 9000, it's a **CrateMover 9001**, able to move several crates at once!
+
+This means a move procedure doesn't reverse the order while moving the crates, the order of the moved part is retained.
+
+In the example, the top crates end up as **MCD**.
+
+**What word is spelled out by the top crates when CrateMover 9001 is finished?**
+
+<!-- livebook:{"break_markdown":true} -->
+
+Well, isn't it lucky we separated out the crane in its own module! (Honest! I had no idea about part 2!)
+
+I can't resist going back and renaming `Crane` to `CrateMover9000`. Apologies. The new module needs to be named…
+
+```elixir
+defmodule CrateMover9001 do
+  @spec move_crates(Crates.stacks(), Crates.procedure()) :: Crates.stacks()
+  def move_crates(stacks, {move, from, to}) do
+    # This pop_in is fiddly. Access.slice takes a range over indices, so one item means 0..0
+    {popped, stacks} = pop_in(stacks, [Access.at(from - 1), Access.slice(0..(move - 1))])
+    put_in(stacks, [Access.at(to - 1)], popped ++ Enum.at(stacks, to - 1))
+  end
+end
+```
+
+```elixir
+{stacks, procedures} = Crates.parse_input(example)
+
+Enum.reduce(procedures, stacks, fn procedure, stacks ->
+  CrateMover9001.move_crates(stacks, procedure)
+end)
+|> Crates.print_stacks()
+```
+
+```elixir
+{stacks, procedures} = Crates.parse_input(Advent.input(2022, 5))
+
+Enum.reduce(procedures, stacks, fn procedure, stacks ->
+  CrateMover9001.move_crates(stacks, procedure)
+end)
+|> tap(fn stacks ->
+  solution = Enum.map(stacks, &hd/1)
+  IO.puts("Solution: #{solution}")
+  IO.puts("")
+end)
+|> Crates.print_stacks()
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 6: Tuning Trouble
+
+We were given a broken communication device and need to fix it. We need it to lock on to the other Elves' devices, by detecting a **start-of-packet marker** in a binary stream. The marker is a sequence of **four characters that are all different**.
+
+**How many characters need to be processed before the first start-of-packet marker is detected?**
+
+```elixir
+example = "mjqjpqmgbljsphdztnvjfqwrcgsmlb"
+
+examples = [
+  example,
+  "bvwbjplbgvbhsrlpgdmjqwftvncz",
+  "nppdvjthqldpwncqszvftbrmjlhg",
+  "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg",
+  "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw"
+]
+
+Advent.download(2022, 6)
+```
+
+This problem has binary pattern matching written all over it. Sweet! Of course, if we make a charlist of the input, we can also use `Enum.find_index/2`, which seems handy for the problem.
+
+```elixir
+find_start_of_packet = fn input ->
+  index =
+    input
+    |> to_charlist()
+    |> Enum.chunk_every(4, 1)
+    |> Enum.find_index(fn
+      # There are six ways two elements can repeat in a four element list.
+      # This also covers when the same character is repeated three or four times.
+      [same, same, _, _] -> false
+      [same, _, same, _] -> false
+      [same, _, _, same] -> false
+      [_, same, same, _] -> false
+      [_, same, _, same] -> false
+      [_, _, same, same] -> false
+      _ -> true
+    end)
+
+  index + 4
+end
+
+Enum.map(examples, find_start_of_packet) |> IO.inspect(label: :examples)
+
+find_start_of_packet.(Advent.input(2022, 6)) |> IO.inspect(label: :solution)
+```
+
+### Part 2
+
+We need to find messages too. A **start-of-message marker** is just like a start-of-packet marker, except it consists of **14 distinct characters** rather than 4.
+
+Well, I'm not going to write out all permutations two characters can be duplicates in a 14 character string, that's for sure. Let's make a list, chunk it up, and look for a 14-character list that has 14 unique elements.
+
+```elixir
+find_start_of_message = fn input ->
+  index =
+    input
+    |> to_charlist()
+    |> Enum.chunk_every(14, 1)
+    |> Enum.find_index(fn chunk ->
+      length(chunk) == length(Enum.uniq(chunk))
+    end)
+
+  index + 14
+end
+
+Enum.map(examples, find_start_of_message) |> IO.inspect(label: :examples)
+
+find_start_of_message.(Advent.input(2022, 6))
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 7: No Space Left On Device
+
+Tree building exercise. We want to build a file tree from commands like `ls` showing files and directories in directory, and `cd <dir>`, `cd ..`, `cd /` to traverse up and down the tree, or directly to the root directory. At each level, we should keep track of the total size of files contained in a directory, directly and indirectly.
+
+Input for building the tree looks like this:
+
+```elixir
+example = """
+$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+"""
+```
+
+Trees are not my strongest area. ~~I think for this problem, it makes sense to keep the total size of a directory in the data structure, when we build it, as a memoization. It can be easily calculated when we go up a level, by simply adding up the direct child nodes.~~* I'm aiming for something like this:
+
+*As I started working with a separate path as state (see below), it made sense to me to leverage the `Access` protocol, so I could `update_in/3` the path directly. But `Access` requires the data structure to be plain key-values (like `Map` or `Keyword`). I accommodated this by dropping the memoized directory size in the parsed output. In retrospect, I suppose I could have kept it in a Tuple.
+
+Regardless, this is what I'm aiming to parse the data into:
+
+```elixir
+data =
+  {":'/'",
+   [
+     {"a",
+      [
+        {"e",
+         [
+           {"i", 584}
+         ]},
+        {"f", 29_116},
+        {"g", 2_557},
+        {"h.lst", 62_596}
+      ]},
+     {"b.txt", 14_848_514},
+     {"c.dat", 8_504_156},
+     {"d",
+      [
+        {"j", 4_060_174},
+        {"d.log", 8_033_020},
+        {"d.ext", 5_626_152},
+        {"k", 7_214_296}
+      ]}
+   ]}
+```
+
+But there is one additional bit of complexity. While we're building the tree, we need some state on _where in the tree we're at_. We can either keep `path` as a separate piece of state, something like `path = ["a", "e"]`, if we're in the `e` directory. Or we can use a zipper tree, which could be more efficient for large trees, but will lead to more complex code.
+
+Let's start by keeping a path. The file structure is unlikely to be huge. We'll see if we go for a more complex data structure just for the learning exercise later on.
+
+Ok, let's ~~plant~~ build some trees!
+
+```elixir
+defmodule TreeBuilder do
+  @type tree() :: [file() | directory()]
+  @type directory() :: {atom(), tree()}
+  @type file() :: {String.t(), non_neg_integer()}
+
+  # naming for documentation
+  @type root() :: directory()
+  @type acc() :: {root(), [atom()]}
+
+  @spec parse(String.t()) :: root()
+  def parse(lines) do
+    # accumulator is {tree, path}.
+    # It's a downside of keeping a tuple that they both look the same in their initial state.
+    {tree, _path} = Enum.reduce(lines, {[], []}, &parse_line/2)
+
+    {:root, tree}
+  end
+
+  @spec parse_line(String.t(), acc()) :: acc()
+  def parse_line(line, {tree, path}) do
+    case line do
+      # directory traversal is easy enough
+      "$ cd /" -> {tree, []}
+      "$ cd .." -> {tree, Enum.reverse(tl(Enum.reverse(path)))}
+      # path must be in order
+      "$ cd " <> dir -> {tree, path ++ [String.to_atom(dir)]}
+      # no-op, output in coming lines
+      "$ ls" -> {tree, path}
+      "dir " <> dir -> {add_dir(tree, path, dir), path}
+      filesize_and_name -> {add_file(tree, path, filesize_and_name), path}
+    end
+  end
+
+  @spec add_dir(tree(), [atom()], String.t()) :: acc()
+  def add_dir(tree, [], new_dir) when is_list(tree) and is_binary(new_dir) do
+    # `update_in` doesn't like empty path
+    [{String.to_atom(new_dir), []} | tree]
+  end
+
+  def add_dir(tree, path, new_dir) when is_list(tree) and is_list(path) and is_binary(new_dir) do
+    update_in(tree, path, fn contents ->
+      [{String.to_atom(new_dir), []} | contents]
+    end)
+  end
+
+  @spec add_file(tree(), [atom()], String.t()) :: acc()
+  def add_file(tree, path, filesize_and_name)
+      when is_list(tree) and
+             is_list(path) and
+             is_binary(filesize_and_name) do
+    {size, " " <> file} = Integer.parse(filesize_and_name)
+    add_file(tree, path, file, size)
+  end
+
+  def add_file(tree, [], file, size) do
+    # `update_in` doesn't like empty path
+    [{file, size} | tree]
+  end
+
+  def add_file(tree, path, file, size) do
+    update_in(tree, path, fn content ->
+      [{file, size} | content]
+    end)
+  end
+end
+```
+
+```elixir
+# See if it build the tree without errors
+TreeBuilder.parse(Advent.lines(example))
+# TreeBuilder.parse(Advent.lines(2022, 7))
+```
+
+Ok, that works for now. Let's try adding up file size per directory, recursively walking down the nested directories:
+
+```elixir
+defmodule DirectorySize do
+  @spec calculate(TreeBuilder.directory(), %{}) :: [{atom(), non_neg_integer()}]
+  def calculate({name, tree}, acc \\ %{root: 0}) do
+    Enum.reduce(tree, acc, fn
+      {_file, size}, acc when is_integer(size) ->
+        Map.update(acc, name, size, fn old_size -> old_size + size end)
+
+      {dir, subtree}, acc ->
+        # Recursion in a `reduce` with a branching fn? This is a bit hard to reason about.
+        # TODO: refactor for understandability
+        new_acc = calculate({dir, subtree}, acc)
+        Map.update(new_acc, name, 0, fn current -> current + new_acc[dir] end)
+    end)
+  end
+end
+```
+
+```elixir
+Advent.lines(example)
+|> TreeBuilder.parse()
+|> DirectorySize.calculate()
+|> Enum.filter(fn {_name, size} -> size <= 100_000 end)
+|> Keyword.values()
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2022, 7)
+|> TreeBuilder.parse()
+|> DirectorySize.calculate()
+|> Enum.filter(fn {_name, size} -> size <= 100_000 end)
+|> Keyword.values()
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+### Uh-oh. Something's wrong
+
+Something's wrong. The answer is correct for the example input, but too low for my puzzle input. _"Your answer is too low."_. In the parsed input, we have these:
+
+```
+{:bfdng, [sbnhc: [{"hbnlqs", 221334}], hjlch: [{"sct", 239759}]]}
+
+```
+
+So we should find these directory sizes:
+
+```
+bfdng: 461093
+sbnhc: 221334
+hjlch: 239759
+```
+
+But instead we find:
+
+```
+hjlch: 239759
+sbnhc: 6284021
+bfdng: 239759
+```
+
+Not only is `bfdng` too low, `sbnhc` is way too high! 
+I can see in my input why I have the second error. The same dirname can appear in several paths! 🤦 It's possible the first error, `bfdng` being too low, is due to the same error, but it may well be another bug.
+
+I could try to fix my bug. The parsed directory structure from `TreeBuilder.parse/1` still looks correct. Perhaps I can accumulate directory sizes in a Keyword list instead of a map, to allow duplicate entries. That might be a small enough refactor.
+
+But it also strikes me that I could have parsed the input into a much simpler structure. A flat structure, like:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+[
+  {"/d/k", 7214296},
+  {"/d/d.ext", 5626152},
+  {"/d/d.log", 8033020},
+  {"/d/j", 4060174},
+  {"/c.dat", 8504156},
+  {"/b.txt", 14848514},
+  {"/a/h.lst", 62596},
+  {"/a/g", 2557},
+  {"/a/f", 29116},
+  {"/a/e/i", 584},
+]
+```
+
+I need a collection of directories too. It's implicit in the list of files only, but I can also build a collection of directories. It can be a separate structure, or I can mix them in as zero-size entries, or with a special tuple form, like `{"path/to/dir", :directory}`. I'm going with the zero-sized path. It's less intention revealing, but I get a single, simple type to reason about, `{path, size}`
+
+Once I can enumerate the directories, determining their size is a simple matter of adding any file size where the directory is a prefix of the filename.
+
+This seems like a simpler approach, and a good learning from the problems of the previous approach. Let's start from scratch!
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Starting over, going flat
+
+```elixir
+defmodule FilePaths do
+  @type result() :: [{path(), size()}]
+  @type path() :: String.t()
+  @type size() :: non_neg_integer()
+
+  @spec parse([String.t()], result(), path()) :: result()
+  def parse(lines, result \\ [{"/", 0}], path \\ "")
+  def parse([], result, _path), do: result
+
+  def parse([line | rest], result, path) do
+    case line do
+      # directory traversal is easy enough
+      "$ cd /" -> parse(rest, result, "")
+      "$ cd .." -> parse(rest, result, up(path))
+      # path must be in order
+      "$ cd " <> dir -> parse(rest, result, path <> "/" <> dir)
+      # no-op, output in coming lines
+      "$ ls" -> parse(rest, result, path)
+      "dir " <> dir -> parse(rest, [{path <> "/" <> dir, 0} | result], path)
+      filesize_and_name -> parse(rest, [file(filesize_and_name, path) | result], path)
+    end
+  end
+
+  @spec up(path()) :: path()
+  def up(path) do
+    String.split(path, "/") |> Enum.slice(0..-2) |> Enum.join("/")
+  end
+
+  @spec file(String.t(), path()) :: {path(), size()}
+  def file(filesize_and_name, path) do
+    {size, " " <> file} = Integer.parse(filesize_and_name)
+    {path <> "/" <> file, size}
+  end
+
+  @spec dirsizes(result()) :: result()
+  def dirsizes(all_files) do
+    # This walks all files many times. We could do one pass, if we kept directories in
+    # a map and determined all directories from the filename, updating the map.
+    # But the file structure isn't big enough for this to matter
+    directories = for {path, 0} <- all_files, do: path
+
+    Enum.map(directories, fn dirpath ->
+      for {path, size} <- all_files,
+          String.starts_with?(path, dirpath),
+          reduce: {dirpath, 0} do
+        {dirpath, sum} -> {dirpath, sum + size}
+      end
+    end)
+  end
+end
+```
+
+Honestly, that was a whole lot simpler! 😅
+
+```elixir
+Advent.lines(example)
+|> FilePaths.parse()
+|> FilePaths.dirsizes()
+|> Enum.filter(fn {_name, size} -> size <= 100_000 end)
+|> Enum.map(&elem(&1, 1))
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2022, 7)
+|> FilePaths.parse()
+|> FilePaths.dirsizes()
+|> Enum.filter(fn {_name, size} -> size <= 100_000 end)
+|> Enum.map(&elem(&1, 1))
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+Phew! What a journey! Time for…
+
+### Part 2
+
+The total disk space is 70,000,000, and we need 30,000,000 to run the update. Current free space is 70M - the current size of the root directory. We need to find the smallest directory that, if deleted, frees up enough space.
+
+**What is the total size of that directory?**
+
+```elixir
+smallest_dir_to_delete = fn dirs ->
+  {"/", occupied_space} = Enum.find(dirs, fn {name, _} -> name == "/" end)
+  free_space = 70_000_000 - occupied_space
+  needed_space = 30_000_000 - free_space
+
+  dirs
+  |> Enum.filter(&(elem(&1, 1) >= needed_space))
+  |> Enum.min_by(&elem(&1, 1))
+end
+
+Advent.lines(example)
+|> FilePaths.parse()
+|> FilePaths.dirsizes()
+|> smallest_dir_to_delete.()
+|> IO.inspect(label: "example")
+
+Advent.lines(2022, 7)
+|> FilePaths.parse()
+|> FilePaths.dirsizes()
+|> smallest_dir_to_delete.()
+|> IO.inspect(label: "solution")
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 8: Treetop Tree House
+
+Determine whether there is enough tree cover here to keep a tree house hidden. To do this, we need to count the number of trees that are visible from outside the grid when looking directly along a row or column.
+
+Each tree is represented as a single digit whose value is its height, where 0 is the shortest and 9 is the tallest, like so:
+
+```elixir
+example = """
+30373
+25512
+65332
+33549
+35390
+"""
+```
+
+A tree is **visible** if all of the other trees between it and an edge of the grid are **shorter** than it. Only consider trees in the same row or column; that is, only look up, down, left, or right from any given tree.
+
+With 16 trees visible on the edge and another 5 visible in the interior, a total of 21 trees are visible in this arrangement.
+
+Consider your map; **how many trees are visible from outside the grid?**
+
+We can determine which coordinates are visible, looking at the trees from all four directions, and then taking the union of these coordinates.
+
+```elixir
+defmodule TreeVisibility do
+  @type trees_with_position() :: [[{height(), position()}]]
+  @type trees() :: [[height()]]
+  @type height() :: non_neg_integer()
+  @type position() :: {non_neg_integer(), non_neg_integer()}
+
+  @spec parse([String.t()]) :: trees()
+  def parse(lines) do
+    Enum.map(lines, fn line ->
+      String.split(line, "", trim: true)
+      |> Enum.map(&String.to_integer/1)
+    end)
+  end
+
+  @spec with_position(trees()) :: trees_with_position()
+  def with_position(trees) do
+    trees
+    |> Enum.with_index()
+    |> Enum.map(fn {row, row_index} ->
+      row
+      |> Enum.with_index()
+      |> Enum.map(fn {tree, column_index} ->
+        {tree, {column_index, row_index}}
+      end)
+    end)
+  end
+
+  @spec visible_from_somewhere(trees()) :: MapSet.t(position())
+  def visible_from_somewhere(trees) do
+    trees_with_position = with_position(trees)
+
+    Enum.reduce(
+      [
+        visible(from_left(trees_with_position)),
+        visible(from_right(trees_with_position)),
+        visible(from_above(trees_with_position)),
+        visible(from_below(trees_with_position))
+      ],
+      &MapSet.union/2
+    )
+  end
+
+  @spec visible(
+          trees_with_position(),
+          MapSet.t(position()),
+          integer()
+        ) :: MapSet.t(position())
+  def visible(trees, visible \\ MapSet.new(), max \\ -1)
+  def visible([], visible, _max), do: visible
+  def visible([[] | rows], visible, _max), do: visible(rows, visible, -1)
+
+  def visible([[{tree, position} | columns] | rows], visible, max) do
+    if tree > max do
+      visible([columns | rows], MapSet.put(visible, position), tree)
+    else
+      visible([columns | rows], visible, max)
+    end
+  end
+
+  def from_left(trees), do: trees
+
+  def from_right(trees), do: Enum.map(trees, &Enum.reverse/1)
+
+  def from_above(trees) do
+    List.zip(trees) |> Enum.map(&Tuple.to_list/1)
+  end
+
+  def from_below(trees) do
+    trees |> from_above() |> from_right()
+  end
+
+  def look(trees), do: Enum.map(trees, &IO.inspect/1)
+end
+```
+
+```elixir
+Advent.lines(example)
+|> TreeVisibility.parse()
+|> TreeVisibility.visible_from_somewhere()
+|> Enum.count()
+|> IO.inspect(label: "example")
+
+Advent.lines(2022, 8)
+|> TreeVisibility.parse()
+|> TreeVisibility.visible_from_somewhere()
+|> Enum.count()
+|> IO.inspect(label: "solution")
+```
+
+### Part 2
+
+The Elves want to build their tree house where they can see the most trees. Trees remain visible as long as they are not blocked by a tree of the same height or heigher than the tree under consideration.
+
+A tree's **scenic score** is found by multiplying together its viewing distance in each of the four directions.
+
+It's not clear from the puzzle description, but I assume a low tree is not blocked from view by a closer, taller tree, as long as they are both lower than the tree house. They do not block the view, and the puzzle describes a situation where two trees of the same height are both visible.
+
+The optimal spot in the example is at position `{2, 3}`, which has a viewing distance of `2` in three directions, `1` towards the bottom, giving it a **scenic score of `8`**.
+
+```elixir
+defmodule ScenicScore do
+  @type trees_with_position() :: TreeVisibility.trees_with_position()
+  @type positions_with_score() :: [{position(), pos_integer()}]
+
+  @spec score_trees(trees_with_position()) :: positions_with_score()
+  def score_trees(trees_with_positions) do
+    score(TreeVisibility.from_left(trees_with_positions))
+  end
+end
+```
+
+## 🎄🎄 Advent of Code 2023 🎄🎄
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 1: Trebuchet?!
+
+We need to restore the calibration values for the trebuchet the Elves will use to shoot me up into the sky. Combine the first and last digits of each line, to form a 2-digit number.
+
+**What is the sum of all of the calibration values?**
+
+```elixir
+Advent.download(2023, 1)
+```
+
+```elixir
+example = """
+1abc2
+pqr3stu8vwx
+a1b2c3d4e5f
+treb7uchet
+"""
+
+calibration_values = fn line ->
+  digits =
+    for digit <- to_charlist(line), digit in ?0..?9 do
+      digit - ?0
+    end
+
+  first = hd(digits)
+  last = hd(Enum.reverse(digits))
+  first * 10 + last
+end
+
+Advent.lines(example)
+|> Enum.map(calibration_values)
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2023, 1)
+|> Enum.map(calibration_values)
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+### Part 2
+
+We we're wrong! Some digits are spelled out as words: one, two, three etc. These also count as digits, using the same rules.
+
+We get a new example:
+
+```elixir
+example2 = """
+two1nine
+eightwothree
+abcone2threexyz
+xtwone3four
+4nineeightseven2
+zoneight234
+7pqrstsixteen
+"""
+```
+
+```elixir
+defmodule CalibrationValues do
+  def digits(line, acc \\ [])
+  def digits("", acc), do: Enum.reverse(acc)
+
+  def digits(line, acc) do
+    rest = String.slice(line, 1..-1)
+
+    case line do
+      "0" <> _ -> digits(rest, [0 | acc])
+      "1" <> _ -> digits(rest, [1 | acc])
+      "2" <> _ -> digits(rest, [2 | acc])
+      "3" <> _ -> digits(rest, [3 | acc])
+      "4" <> _ -> digits(rest, [4 | acc])
+      "5" <> _ -> digits(rest, [5 | acc])
+      "6" <> _ -> digits(rest, [6 | acc])
+      "7" <> _ -> digits(rest, [7 | acc])
+      "8" <> _ -> digits(rest, [8 | acc])
+      "9" <> _ -> digits(rest, [9 | acc])
+      "zero" <> _ -> digits(rest, [0 | acc])
+      "one" <> _ -> digits(rest, [1 | acc])
+      "two" <> _ -> digits(rest, [2 | acc])
+      "three" <> _ -> digits(rest, [3 | acc])
+      "four" <> _ -> digits(rest, [4 | acc])
+      "five" <> _ -> digits(rest, [5 | acc])
+      "six" <> _ -> digits(rest, [6 | acc])
+      "seven" <> _ -> digits(rest, [7 | acc])
+      "eight" <> _ -> digits(rest, [8 | acc])
+      "nine" <> _ -> digits(rest, [9 | acc])
+      _ -> digits(rest, acc)
+    end
+  end
+end
+```
+
+Note that words can overlap. In my first attempt, words were taken off the string, and `rest` was passed on for recursion, like `"three" <> rest -> digits(rest, [3 | acc])`.
+
+This gave the wrong answer, as some words overlap. The example has `zoneight234`, where `one` overlaps with `eight`, but since eight is not the last digit, it does not affect the result.
+
+This is fixed in `CalibrationValues.digits/2` above, so that we only remove one character at a time.
+
+```elixir
+example2
+|> Advent.lines()
+|> Enum.map(&CalibrationValues.digits/1)
+|> Enum.map(fn digits -> hd(digits) * 10 + hd(Enum.reverse(digits)) end)
+|> Enum.sum()
+|> IO.inspect(label: :example)
+
+Advent.lines(2023, 1)
+|> Enum.map(&CalibrationValues.digits/1)
+|> Enum.map(fn digits -> hd(digits) * 10 + hd(Enum.reverse(digits)) end)
+|> Enum.sum()
+|> IO.inspect(label: :solution)
+
+Advent.lines(2023, 1, "farshid")
+|> Enum.map(&CalibrationValues.digits/1)
+|> Enum.map(fn digits -> hd(digits) * 10 + hd(Enum.reverse(digits)) end)
+|> Enum.sum()
+|> IO.inspect(label: :farshid)
+```
+
+```elixir
+# Regex approach
+Advent.lines(example2)
+|> Enum.map(&Regex.scan(~r/(\d|zero|one|two|three|four|five|six|seven|eight|nine)/, &1))
+|> Enum.map(fn matches ->
+  Enum.map(matches, fn [match, _capture] ->
+    case match do
+      "zero" -> 0
+      "one" -> 1
+      "two" -> 2
+      "three" -> 3
+      "four" -> 4
+      "five" -> 5
+      "six" -> 6
+      "seven" -> 7
+      "eight" -> 8
+      "nine" -> 9
+      digit -> String.to_integer(digit)
+    end
+  end)
+end)
+|> Enum.map(fn [first | tail] -> {first, hd(Enum.reverse(tail))} end)
+|> Enum.map(fn {first, last} -> first * 10 + last end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 2: Cube Conundrum
+
+We land on Snow Island, and an Elf greets us. The Elf wants to play a game with some cubes which are either red, green, or blue. Each time we play this game, he will hide a secret number of cubes of each color in the bag, and our goal is to figure out information about the number of cubes.
+
+Here are a few example games. The games are numbered so they can be identified, and then follows a few semi-colon separated subsets of cubes.
+
+```elixir
+example = """
+Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
+"""
+```
+
+Determine which games would have been possible if the bag had been loaded with only 12 red cubes, 13 green cubes, and 14 blue cubes. **What is the sum of the IDs of those games?**
+
+```elixir
+defmodule CubeGame do
+  @type game() :: {id(), [cubes()]}
+  @type id() :: pos_integer()
+  @type cubes() :: %{
+          red: non_neg_integer(),
+          green: non_neg_integer(),
+          blue: non_neg_integer()
+        }
+
+  @spec parse_game(String.t()) :: game()
+  def parse_game("Game " <> line) do
+    {id, ": " <> rest} = Integer.parse(line)
+    {id, parse_subgames(rest)}
+  end
+
+  @spec parse_subgames(String.t()) :: [cubes()]
+  def parse_subgames(line) do
+    line
+    |> String.split("; ")
+    |> Enum.map(&parse_colors/1)
+  end
+
+  @empty %{red: 0, green: 0, blue: 0}
+
+  @spec parse_colors(String.t()) :: cubes()
+  def parse_colors(colors) do
+    colors
+    |> String.split(", ")
+    |> Enum.reduce(@empty, fn color, acc ->
+      case Integer.parse(color) do
+        {count, " red"} -> Map.put(acc, :red, count)
+        {count, " blue"} -> Map.put(acc, :blue, count)
+        {count, " green"} -> Map.put(acc, :green, count)
+      end
+    end)
+  end
+
+  @spec possible?(game()) :: boolean()
+  def possible?({_, subgames}) do
+    Enum.all?(subgames, fn %{red: red, green: green, blue: blue} ->
+      red <= 12 and green <= 13 and blue <= 14
+    end)
+  end
+end
+```
+
+```elixir
+Advent.lines(example)
+|> Enum.map(&CubeGame.parse_game/1)
+|> Enum.filter(&CubeGame.possible?/1)
+|> Enum.map(&elem(&1, 0))
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2023, 2)
+|> Enum.map(&CubeGame.parse_game/1)
+|> Enum.filter(&CubeGame.possible?/1)
+|> Enum.map(&elem(&1, 0))
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+### Part 2
+
+The Elf poses a second question: in each game we played, what is the **fewest number of cubes** of each color that could have been in the bag to make the game possible?
+
+The power of a set of cubes is equal to the numbers of red, green, and blue cubes multiplied together. For each game, find the minimum set of cubes that must have been present. **What is the sum of the power of these sets?**
+
+```elixir
+defmodule PowerCubes do
+  @type acc() :: {non_neg_integer(), non_neg_integer(), non_neg_integer()}
+  @empty {0, 0, 0}
+
+  @spec minimum_cubes(CubeGame.game()) :: acc()
+  def minimum_cubes({_, subgames}) do
+    Enum.reduce(subgames, @empty, fn cubes, {red, green, blue} ->
+      {max(cubes.red, red), max(cubes.green, green), max(cubes.blue, blue)}
+    end)
+  end
+
+  @spec power(acc()) :: non_neg_integer()
+  def power({red, green, blue}), do: red * green * blue
+end
+```
+
+```elixir
+Advent.lines(example)
+|> Enum.map(&CubeGame.parse_game/1)
+|> Enum.map(&PowerCubes.minimum_cubes/1)
+|> Enum.map(&PowerCubes.power/1)
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2023, 2)
+|> Enum.map(&CubeGame.parse_game/1)
+|> Enum.map(&PowerCubes.minimum_cubes/1)
+|> Enum.map(&PowerCubes.power/1)
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 3: Gear Ratios
+
+We need to fix the **gondola lift** so we can get up to the water source. The engineer explains that an engine part seems to be missing from the engine, but nobody can figure out which one. If we can **add up all the part numbers** in the engine schematic, it should be easy to work out which part is missing.
+
+The engine schematic (out puzzle input) consists of a visual representation of the engine. Any number adjacent to a symbol, even diagonally, is a "part number" and should be included in your sum. (Periods `.`s do not count as a symbol.)
+
+Here is an example engine schematic:
+
+```elixir
+example = """
+467..114..
+...*......
+..35..633.
+......#...
+617*......
+.....+.58.
+..592.....
+......755.
+...$.*....
+.664.598..
+"""
+```
+
+Numbers need to be considered in whole, not as separate digits. In the top left `467` is diagonally adjacent to `*` in the next row, while `114` should not be counted as it is not adjacent to any symbol.
+
+Confronted with grid problems like this, I often transform them into a map of `{coordinate, value}`, which makes it easy to access values in adjacent coordinates of a given position.
+
+In this case, we will need to account for **one number covering several coordinates**. This will complicate parsing, but we also need to consider how we're going to use this map. We could map the full number for each of the coordinates it covers, like `%{{0,0} => 467, {0,1} => 467, {0,2} => 467}`. This will inevitably lead to the same number coming up multiple times when we look for symbol neighbours. Unless numbers are unique (a dangerous assumption, I'd think) we'll have a hard time distinguishing them.
+
+Each number has a single **starting cell**, which can uniquely distinguish it. We can build a map of `{coordinate, {number, starting_coordinate}}`. This will let us remove duplicates when we find a symbol's neighbours.
+
+While parsing, we can also build a separate list of `{coordinate, symbol}`, so that we can easily work with the symbols later.
+
+```elixir
+defmodule EngineParts do
+  @type position() :: {non_neg_integer(), non_neg_integer()}
+  # starting position for uniqueness
+  @type part() :: {position(), non_neg_integer()}
+  @type grid() :: %{position() => part()}
+  @type symbol() :: {position(), char()}
+
+  defguard is_digit(char) when char in ?0..?9
+
+  @spec parse_by_line([String.t()], non_neg_integer(), grid(), [symbol()]) :: {grid(), [symbol()]}
+  def parse_by_line(lines, y \\ 0, grid \\ %{}, symbols \\ [])
+  def parse_by_line([], _y, grid, symbols), do: {grid, symbols}
+
+  def parse_by_line([line | rest], y, grid, symbols) do
+    {new_grid, new_symbols} = parse_by_char(to_charlist(line), {0, y}, grid, symbols)
+    parse_by_line(rest, y + 1, new_grid, new_symbols)
+  end
+
+  @spec parse_by_char(charlist(), position(), grid(), [symbol()]) :: {grid(), [symbol()]}
+  def parse_by_char([], _position, grid, symbols), do: {grid, symbols}
+
+  def parse_by_char([?. | chars], {x, y}, grid, symbols) do
+    # Skip periods `.`
+    parse_by_char(chars, {x + 1, y}, grid, symbols)
+  end
+
+  # And now for the tricky bit. :P
+  def parse_by_char([digit | chars], {x, y}, grid, symbols) when digit in ?0..?9 do
+    # Digits signal that we need to take a whole number, store it with starting position
+    # for all its positions in the grid and continue parsing after the number.
+    starting_position = {x, y}
+
+    # Take the full number, and parse it to integer
+    digits = Enum.take_while(chars, &(&1 in ?0..?9))
+    number = [digit | digits] |> to_string() |> String.to_integer()
+
+    # Keep the number for every position it overlaps, with the unique starting position
+    new_grid =
+      Enum.reduce(0..length(digits), grid, fn dx, map ->
+        Map.put(map, {x + dx, y}, {starting_position, number})
+      end)
+
+    # Continue parsing after the number (which is x + 1 + length(digits), got this wrong first time)
+    parse_by_char(
+      Enum.drop(chars, length(digits)),
+      {x + 1 + length(digits), y},
+      new_grid,
+      symbols
+    )
+  end
+
+  def parse_by_char([symbol | chars], {x, y}, grid, symbols) do
+    # Anything that's not a period `.` or digit `?0..?9` must be a symbol
+    parse_by_char(chars, {x + 1, y}, grid, [{{x, y}, symbol} | symbols])
+  end
+
+  @spec adjacent_numbers({grid(), [symbol()]}) :: MapSet.t(part())
+  def adjacent_numbers({grid, symbols}) do
+    Enum.reduce(symbols, MapSet.new(), fn symbol, set ->
+      adjacent_to_symbol(grid, symbol, set)
+    end)
+  end
+
+  @spec adjacent_to_symbol(grid(), symbol(), MapSet.t(part())) :: MapSet.t(part())
+  def adjacent_to_symbol(grid, {{x, y}, _symbol}, set \\ MapSet.new()) do
+    [
+      Map.get(grid, {x - 1, y - 1}),
+      Map.get(grid, {x, y - 1}),
+      Map.get(grid, {x + 1, y - 1}),
+      Map.get(grid, {x - 1, y}),
+      Map.get(grid, {x + 1, y}),
+      Map.get(grid, {x - 1, y + 1}),
+      Map.get(grid, {x, y + 1}),
+      Map.get(grid, {x + 1, y + 1})
+    ]
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.into(set)
+  end
+end
+```
+
+```elixir
+Advent.lines(example)
+|> EngineParts.parse_by_line()
+|> EngineParts.adjacent_numbers()
+|> Enum.map(&elem(&1, 1))
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2023, 3)
+|> EngineParts.parse_by_line()
+|> EngineParts.adjacent_numbers()
+|> Enum.map(&elem(&1, 1))
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+`539_637` is ~~too high. I messed up somewhere…~~ …the right answer for part 1.
+
+Here's to reading comprehension! I was making changes to the code for part 1 to prepare for part 2. Somewhere along the way, I re-ran the solution to check that it worked, and _put it in the input field for part 2_. It was the wrong answer, obviously, so I scratched my head trying to work out where I screwed up refactoring. Couldn't see anything wrong. Got discouraged. Was ill for a few days. Then didn't pick up AoC again for two full weeks.
+
+Shaking my head now.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+We got the engine running, but it's slow. We need to replace a gear, so we need to calculate the **gear ratio**, so the engineer can figure out which gear is wrong.
+
+A gear is any <kbd>*</kbd> symbol that is adjacent to exactly two part numbers. The gear ratio is the product of those numbers. **What is the sum of all of the gear ratios in your engine schematic?**
+
+Conveniently I built up a list of symbols for part 2, and a nice map of positions with numbers in them. 😁
+
+```elixir
+Advent.lines(example)
+|> EngineParts.parse_by_line()
+|> elem(1)
+|> Enum.map(fn {_pos, char} -> to_string([char]) end)
+```
+
+```elixir
+defmodule GearRatio do
+  @type part() :: EngineParts.part()
+  @type position() :: EngineParts.position()
+  @type gear() :: {EngineParts.position(), part(), part()}
+
+  @spec gear_ratios({EngineParts.grid(), EngineParts.symbols()}) :: [gear]
+  def gear_ratios({grid, symbols}) do
+    symbols
+    |> Enum.filter(&looks_like_a_gear?/1)
+    |> Enum.map(&EngineParts.adjacent_to_symbol(grid, &1))
+    |> Enum.map(fn set ->
+      case Enum.to_list(set) do
+        [{_, one}, {_, two}] -> one * two
+        _ -> 0
+      end
+    end)
+  end
+
+  defp looks_like_a_gear?({_pos, ?*}), do: true
+  defp looks_like_a_gear?(_), do: false
+end
+```
+
+```elixir
+Advent.lines(example)
+|> EngineParts.parse_by_line()
+|> GearRatio.gear_ratios()
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2023, 3)
+|> EngineParts.parse_by_line()
+|> GearRatio.gear_ratios()
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 4: Scratchcards
+
+An Elf is sitting on the floor in what seems to be a pile of colorful square cards. They're scratchcards, and the elf needs help figuring out what he won. Each card has two lists of numbers separated by a vertical bar <kbd>|</kbd>: a list of winning numbers and then a list of numbers you have.
+
+```elixir
+example = """
+Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
+Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
+Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1
+Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
+Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
+Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
+"""
+```
+
+You have to figure out which of the numbers you have appear in the list of winning numbers. The first match makes the card worth **one point** and each match after the first **doubles** the point value of that card. In this example, the Elf's pile of scratchcards is worth 13 points.
+
+**How many points are the scratchcards worth in total?**
+
+```elixir
+defmodule Scratchcards do
+  @type id() :: non_neg_integer()
+  # {winning numbers, your numbers}
+  @type card() :: {id(), MapSet.t(integer), [integer]}
+
+  @spec parse_line(String.t()) :: card()
+  def parse_line("Card " <> line) do
+    [id_string, winning_and_your_numbers] = String.split(line, ": ", parts: 2)
+    [winning, yours] = String.split(winning_and_your_numbers, "| ", parts: 2)
+
+    id = String.trim(id_string) |> String.to_integer()
+    winning = Regex.scan(~r/\d+/, winning) |> MapSet.new()
+    yours = Regex.scan(~r/\d+/, yours)
+
+    {id, winning, yours}
+  end
+
+  @spec score(card()) :: non_neg_integer()
+  def score({_id, winning, yours}) do
+    Enum.reduce(yours, 0, fn n, double ->
+      case {MapSet.member?(winning, n), double} do
+        {false, _} -> double
+        {true, 0} -> 1
+        {true, _} -> double * 2
+      end
+    end)
+  end
+end
+```
+
+```elixir
+Advent.lines(example)
+|> Enum.map(&Scratchcards.parse_line/1)
+|> Enum.map(&Scratchcards.score/1)
+|> Enum.sum()
+|> IO.inspect(label: "example")
+
+Advent.lines(2023, 4)
+|> Enum.map(&Scratchcards.parse_line/1)
+|> Enum.map(&Scratchcards.score/1)
+|> Enum.sum()
+|> IO.inspect(label: "solution")
+```
+
+### Part 2
+
+Actually, the scoring was all wrong. A winning scratchcard wins you copies of the following scratchcards, going down equal to the number of matching numbers on the card.
+
+So if card 10 has 5 matching numbers, we win one additional copy of cards 11, 12, 13, 14 and 15. These copies have the same id as the original card, and are scored in the same way.
+
+In the example, once all of the originals and copies have been processed, we end up with 1 instance of card 1, 2 instances of card 2, 4 instances of card 3, 8 instances of card 4, 14 instances of card 5, and 1 instance of card 6. In total, **30** scratchcards!
+
+Including the original set of scratchcards, **how many total scratchcards do you end up with?**
+
+<!-- livebook:{"break_markdown":true} -->
+
+Ok, it was a bit speculative keeping the card id when parsing input. Let's keep a count instead. Then we walk the cards in order, and add to the count when we win. If we already have several sets of a card, we can add all their winnings in one go.
+
+```elixir
+defmodule WinMoreScratchcards do
+  @type score() :: non_neg_integer()
+  @type copies() :: pos_integer()
+  # {copies, winning, yours}
+  @type card() :: {copies(), MapSet.t(integer()), [integer()]}
+
+  @spec set_initial_copies([ScratchCard.card()]) :: [card()]
+  def set_initial_copies(parsed_cards) do
+    Enum.map(parsed_cards, fn {_id, winning, yours} -> {1, winning, yours} end)
+  end
+
+  @spec win_more_cards([card()], [card()]) :: [card()]
+  def win_more_cards(cards, result \\ [])
+  def win_more_cards([], result), do: Enum.reverse(result)
+
+  def win_more_cards([{copies, winning, yours} = head | tail], result) do
+    score(winning, yours)
+    |> add_copies(copies, tail)
+    |> win_more_cards([head | result])
+  end
+
+  @spec add_copies(score(), copies(), [card()]) :: [card()]
+  def add_copies(count, copies_to_add, cards) do
+    cards_with_added_copies =
+      Enum.take(cards, count)
+      |> Enum.map(fn {copies, winning, yours} -> {copies + copies_to_add, winning, yours} end)
+
+    cards_with_added_copies ++ Enum.drop(cards, count)
+  end
+
+  def score(winning, yours) do
+    Enum.count(yours, &MapSet.member?(winning, &1))
+  end
+end
+```
+
+```elixir
+Advent.lines(example)
+|> Enum.map(&Scratchcards.parse_line/1)
+|> WinMoreScratchcards.set_initial_copies()
+|> WinMoreScratchcards.win_more_cards()
+|> Enum.reduce(0, fn {copies, _, _}, sum -> sum + copies end)
+|> IO.inspect(label: "example")
+
+Advent.lines(2023, 4)
+|> Enum.map(&Scratchcards.parse_line/1)
+|> WinMoreScratchcards.set_initial_copies()
+|> WinMoreScratchcards.win_more_cards()
+|> Enum.reduce(0, fn {copies, _, _}, sum -> sum + copies end)
+|> IO.inspect(label: "solution")
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Day 5: If You Give A Seed A Fertilizer
+
+### Part 1
+
+The puzzle input is an **almanac** that lists all of the seeds that need to be planted. It also lists what type of soil to use with each kind of seed, what type of fertilizer to use with each kind of soil, what type of water to use with each kind of fertilizer, and so on. Every type of seed, soil, fertilizer and so on is identified with a number, but numbers are reused by each category - that is, soil 123 and fertilizer 123 aren't necessarily related to each other.
+
+The three numbers per line in the mappings correspond to start values for a destination range, a source range, and range length. `seed-to-soil` starts off with `50 98 2`, meaning the destination range is `50..51` and source range is `98..99`.
+
+Any unmapped source numbers correspond to the same location. In the example `seed-to-soil`, `10` is unmapped, and corresponds to destination `10`.
+
+We must use the mappings to follow the seeds we're given, though all the maps, to a destination location.
+
+**What is the lowest location number that corresponds to any of the initial seed numbers?**
+
+```elixir
+example = """
+seeds: 79 14 55 13
+
+seed-to-soil map:
+50 98 2
+52 50 48
+
+soil-to-fertilizer map:
+0 15 37
+37 52 2
+39 0 15
+
+fertilizer-to-water map:
+49 53 8
+0 11 42
+42 0 7
+57 7 4
+
+water-to-light map:
+88 18 7
+18 25 70
+
+light-to-temperature map:
+45 77 23
+81 45 19
+68 64 13
+
+temperature-to-humidity map:
+0 69 1
+1 0 69
+
+humidity-to-location map:
+60 56 37
+56 93 4
+"""
+```
+
+It seems the example and our input maps the same categories of things:
+
+* seed <-> soil
+* soil <-> fertilizer
+* fertilizer <-> water
+* water <-> light
+* light <-> temperature
+* temperature <-> humidity
+* humidity <-> location
+
+We can encode these categories in source code, and not worry about unknown categories.
+
+A naive idea is to parse the ranges to actual mappings of number to number, so that our `seed-to-soil` would contain `%{98 => 50, 99 => 51, 50 => 52, 51 => 53, ...}`. Peeking at our puzzle input, this approach looks like trouble. The numbers are quite large, and we'd be building maps of many million numbers.
+
+Better to keep the ranges. If we find a value within a range, we can easily calculate its destination from the offset to the range start value. But ranges make poor maps. There's a fairly small number of ranges, so we can keep a list of them and search that when we're doing lookups.
+
+But first, let's parse the inputs into something we can work with. Let's build a struct with the seeds, and all the mappings, like:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+%SeedMappings{
+  seeds: [79, 14, 55, 13],
+  seed_to_soil: [{52..99, 50..97}, {50..51, 98..99}],
+  soil_to_fertilizer: [{39..53, 0..14}, {37..38, 52..53}, {0..36, 15..51}],
+  fertilizer_to_water: [{57..60, 7..10}, {42..48, 0..6}, {0..41, 11..52}, {49..56, 53..60}],
+  water_to_light: [{18..87, 25..94}, {88..94, 18..24}],
+  light_to_temperature: [{68..80, 64..76}, {81..99, 45..63}, {45..67, 77..99}],
+  temperature_to_humidity: [{1..69, 0..68}, {0..0, 69..69}],
+  humidity_to_location: [{56..59, 93..96}, {60..96, 56..92}]
+}
+```
+
+Here, every mapping has a list of tuples with the destination and source ranges.
+
+```elixir
+defmodule SeedMappings do
+  @type source_range() :: Range.t(integer(), integer())
+  @type destination_range() :: Range.t(integer(), integer())
+  @type range_mapping() :: {destination_range(), source_range()}
+
+  @type context ::
+          :seeds
+          | :seed_to_soil
+          | :soil_to_fertilizer
+          | :fertilizer_to_water
+          | :water_to_light
+          | :light_to_temperature
+          | :temperature_to_humidity
+          | :humidity_to_location
+
+  @type t :: %__MODULE__{
+          seeds: [integer()],
+          seed_to_soil: [range_mapping()],
+          soil_to_fertilizer: [range_mapping()],
+          fertilizer_to_water: [range_mapping()],
+          water_to_light: [range_mapping()],
+          light_to_temperature: [range_mapping()],
+          temperature_to_humidity: [range_mapping()],
+          humidity_to_location: [range_mapping()]
+        }
+
+  defstruct seeds: [],
+            seed_to_soil: [],
+            soil_to_fertilizer: [],
+            fertilizer_to_water: [],
+            water_to_light: [],
+            light_to_temperature: [],
+            temperature_to_humidity: [],
+            humidity_to_location: []
+
+  @behaviour Access
+  defdelegate get(v, key, default), to: Map
+  defdelegate fetch(v, key), to: Map
+  defdelegate get_and_update(v, key, func), to: Map
+  def pop(v, key), do: {v[key], v}
+
+  @spec parse(String.t(), context(), t()) :: t()
+  @spec parse([String.t()], context(), t()) :: t()
+  def parse(lines, context \\ :seeds, result \\ %__MODULE__{})
+  # parse seeds line
+  def parse(binary, context, result) when is_binary(binary) do
+    parse(String.split(binary, "\n", trim: false), context, result)
+  end
+
+  # last line is empty, since we `trim: false`
+  def parse([""], _context, result), do: result
+
+  def parse(["seeds: " <> seeds | rest], :seeds, result) do
+    parse(rest, :seeds, struct(result, seeds: numbers(seeds)))
+  end
+
+  # new mapping, change context
+  # an empty line preceeds the new mapping, if we split lines with `trim: false`
+  def parse(["", new_mapping_line | rest], _, result) do
+    [mapping_name, "map:"] = String.split(new_mapping_line, " ", parts: 2)
+
+    context =
+      mapping_name
+      |> String.replace("-", "_")
+      |> String.to_existing_atom()
+
+    parse(rest, context, result)
+  end
+
+  # add range in context
+  def parse([range_mapping_numbers | rest], context, result) do
+    [destination_start, source_start, range_length] = numbers(range_mapping_numbers)
+
+    destination_range = to_range(destination_start, range_length)
+    source_range = to_range(source_start, range_length)
+    range_mapping = {destination_range, source_range}
+
+    parse(rest, context, add(result, context, range_mapping))
+  end
+
+  def to_range([start, length]), do: to_range(start, length)
+
+  def to_range(start, length) do
+    start..(start + length - 1)
+  end
+
+  @spec add(t(), context(), range_mapping()) :: t()
+  def add(result, context, range_mapping) do
+    Map.update!(result, context, fn prev -> [range_mapping | prev] end)
+  end
+
+  @spec numbers(String.t()) :: [integer()]
+  def numbers(string) do
+    String.split(string, " ") |> Enum.map(&String.to_integer/1)
+  end
+end
+```
+
+```elixir
+SeedMappings.parse(example)
+```
+
+```elixir
+defmodule SeedToLocation do
+  alias SeedMappings, as: Mappings
+
+  @spec lookup(integer(), [Mappings.range_mapping()]) :: integer()
+  def lookup(source, mappings) do
+    Enum.find_value(mappings, source, fn {destination_range_start.._end, source_range} ->
+      if Enum.member?(source_range, source) do
+        source_range_start.._end = source_range
+        offset = source - source_range_start
+        destination_range_start + offset
+      end
+    end)
+  end
+
+  @spec lookup_seed_location(integer(), Mappings.t()) :: integer()
+  def lookup_seed_location(seed, input = %Mappings{}) do
+    seed
+    |> lookup(input.seed_to_soil)
+    |> lookup(input.soil_to_fertilizer)
+    |> lookup(input.fertilizer_to_water)
+    |> lookup(input.water_to_light)
+    |> lookup(input.light_to_temperature)
+    |> lookup(input.temperature_to_humidity)
+    |> lookup(input.humidity_to_location)
+  end
+end
+```
+
+```elixir
+input = SeedMappings.parse(example)
+
+Enum.map(input.seeds, &SeedToLocation.lookup_seed_location(&1, input))
+|> IO.inspect(label: "example", charlists: :as_lists)
+
+input = Advent.input(2023, 5) |> SeedMappings.parse()
+
+Enum.map(input.seeds, &SeedToLocation.lookup_seed_location(&1, input))
+|> Enum.min()
+|> IO.inspect(label: "solution", charlists: :as_lists)
+```
+
+### Part 2
+
+The `seeds:` line actually describes ranges of seed numbers. The values **come in pairs**. Within each pair, the first value is the **start** of the range and the second value is the **length** of the range. So, in the first line of the example above:
+
+```
+seeds: 79 14 55 13
+```
+
+The ranges are `79..(79+14-1)` and `55..(55+13-1)`, or `79..92` and `55..67`
+
+**What is the lowest location number that corresponds to any of the initial seed numbers?**
+
+This stumped me. Let's explore options:
+
+#### Option 1: Brute force
+
+There's a straight-forward brute-force solution: just map every seed in the seed ranges. But just eyeballing the input tells me there are hundreds of millions, if not billions, of seeds.
+
+Out of curiousity, after transforming the seeds input to ranges, I summed up the range sizes: 1,576,808,099, so a bit over 1,5 billion seeds. Out of more curiousity, I ran a brute-force on the first range with some 50 million seeds. A few minutes later, it's still running. I wasn't exactly optimizing for performance, but we're clearly meant to think harder about this one.
+
+Ok, the brute-force took about 3 minutes, and we can split up the work across my cores. The puzzle input just happens to have 10 seed ranges, and I just happen to have 10 cores. There's one range in my input that has 500M seeds, so a full brute-force would _probably_ finish in less than an hour. Honestly might be quicker than my reasoning skills at this hour, but where's the fun in that? Well, putting those cores to use is a bit of fun at least. 😁
+
+We could be smarter about it, and split the ranges more evenly. We don't have to map them as units, as we're brute-forcing directly on seed values. Perhaps they even overlap, what do I know?
+
+#### Option 2: Slightly smarter brute forcing
+
+15 billion seeds split on 10 cores will keep each one busy with about 150 million, which _could_ come in at around 10 minutes, probably a bit more. (The raw brute-force gave just over 800% cpu to my beam process. Funny thing, you can tell from `top` when a Task finished with one of the ranges, as the load drops significantly.)
+
+```elixir
+defmodule SeedRanges do
+  def from_seeds(%SeedMappings{seeds: seeds}) do
+    Enum.chunk_every(seeds, 2)
+    |> Enum.map(&SeedMappings.to_range/1)
+  end
+
+  # Pro-tip: don't run this.
+  def brute_force(seed_ranges, input) do
+    Enum.map(fn seed_range ->
+      Task.async(fn ->
+        Enum.map(seed_range, &SeedToLocation.lookup_seed_location(&1, input))
+        |> Enum.min()
+      end)
+    end)
+    |> Enum.map(&Task.await(&1, :infinity))
+  end
+end
+```
+
+```elixir
+input = Advent.input(2023, 5) |> SeedMappings.parse()
+
+SeedRanges.from_seeds(input)
+|> Enum.map(fn seed_range ->
+  Task.async(fn ->
+    # Let's comment this out so we don't accidentally re-run this without wanting to.
+    # Enum.map(seed_range, &SeedToLocation.lookup_seed_location(&1, input))
+    seed_range
+    |> Enum.min()
+  end)
+end)
+|> Enum.map(&Task.await(&1, :infinity))
+```
+
+```elixir
+# This is from brute-forcing with my puzzle input with the method above
+a = [
+  2_509_416_930,
+  1_339_903_174,
+  77_781_696,
+  524_321_155,
+  278_431_577,
+  59_370_572,
+  166_973_311,
+  2_646_025_192,
+  189_294_668,
+  1_322_210_923
+]
+
+Enum.min(a)
+```
+
+```elixir
+# Bit smarter brute force
+defmodule X do
+  @cores 10
+  def evenly_split_brute_force(seed_ranges, input) do
+    total = Enum.map(seed_ranges, &Range.size/1) |> Enum.sum() # about 1,5 Billion
+    per_core = div(total, @cores)
+
+    split_ranges_evenly(seed_ranges, per_core)
+    |> Enum.map(fn batch -> do
+      Task.async(fn -> 
+        Enumm.map(batch, fn range ->
+          Enum.map(range, &SeedToLocation.lookup_seed_location(&1, input))
+        end)
+        |> Enum.min
+      end)
+    end)
+    |> Enum.map(&Task.await/1)
+    |> Enum.min()
+  end
+
+  def split_ranges_evently(seed_ranges, per_core) do
+    Enum.reduce(seed_ranges, [[]], fn range, [current_batch | batches] ->
+      current_batch_size = Enum.map(current_batch, &Range.size/1) |> Enum.sum()
+
+      if current_batch_size + Range.size(range) > per_core do
+        first..last = range
+        offset = per_core - current_batch_size
+        [[offset..last], [first..(offset-1) | current_batch] | batches]
+      else
+        [[range | current_batch] | batches]
+      end
+    end)
+  end
+end
+```
+
+But enough with the brute forcing! Splitting the ranges for the smaller batches gave an idea, though. But we can't treat the mapping as a unit the way `SeedToLocation.lookup_seed_location/2` does.
+
+#### Option 3: Keep splitting the ranges
+
+When mapping seeds `79..92` to **soil** `seed_to_soil: [{52..99, 50..97}, {50..51, 98..99}]` we can see it fully fits in source range `50..97`, meaning seeds `79..92` maps to soils `81..94`. To be more explicit about it, since this seed range fits fully in a source range, we get:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+> soil_range = lookup(input.seed_to_soil, 79)..lookup(input.seed_to_soil, 92)
+=> 81..94
+```
+
+Seed range `55..67` is the same story, fits whole in `50..97`, so it maps to `57..69`. Good, we've mapped all seeds to soils.
+
+Next step is to **fertilizer**: `soil_to_fertilizer: [{39..53, 0..14}, {37..38, 52..53}, {0..36, 15..51}]`. This one is even easier: both `81..94` and `57..69` are fully outside the source ranges, so they map to themselves.
+
+Next step is **water**: `fertilizer_to_water: [{57..60, 7..10}, {42..48, 0..6}, {0..41, 11..52}, {49..56, 53..60}]`. Finally it gets interesting, because while `81..94` is still outside the source ranges, `57..69` _partially_ overlaps the last one, `53..60`. What do we do then?
+
+We split the range. `57..60` will map (using `lookup(input.fertilizer_to_water, 57)..lookup(input.fertilizer_to_water, 60)`) to `53..56`, and `61..69` maps to itself. Suddenly the two seed ranges from the example has turned into three ranges. But the principle is still the same.
+
+Let's stop stepping through the example and talk about the different cases. An input range (starting with one from the seed ranges) and a mapping range (starting with one from `seed_to_soil`) can have these cases:
+
+* The input range can be disjoint from the mapping range. Proceed to the next mapping range, or, if there are none, map to itself.
+* The input range can be contained in the mapping range. Then map it to a new range, and you're done (in this mapping step at least).
+* The input range can partially overlap the mapping range. Split the input range and map the overlapping part. That part is done. Proceed to the next mapping for the remaining piece of the input range.
+* The input range can fully overlap the mapping range. Split the input range into three parts, one lower, one overlapping, and one upper. Map the overlapping part, and proceed with the other two.
