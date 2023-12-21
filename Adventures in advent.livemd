@@ -2375,39 +2375,47 @@ Enum.min(a)
 
 ```elixir
 # Bit smarter brute force
-defmodule X do
+defmodule BitSmarter do
   @cores 10
   def evenly_split_brute_force(seed_ranges, input) do
-    total = Enum.map(seed_ranges, &Range.size/1) |> Enum.sum() # about 1,5 Billion
+    # about 1,5 Billion
+    total = Enum.map(seed_ranges, &Range.size/1) |> Enum.sum()
     per_core = div(total, @cores)
 
     split_ranges_evenly(seed_ranges, per_core)
-    |> Enum.map(fn batch -> do
-      Task.async(fn -> 
-        Enumm.map(batch, fn range ->
+    |> Enum.map(fn batch ->
+      Task.async(fn ->
+        Enum.map(batch, fn range ->
           Enum.map(range, &SeedToLocation.lookup_seed_location(&1, input))
         end)
-        |> Enum.min
+        |> Enum.min()
       end)
     end)
-    |> Enum.map(&Task.await/1)
+    |> Enum.map(&Task.await(&1, :infinity))
     |> Enum.min()
   end
 
-  def split_ranges_evently(seed_ranges, per_core) do
+  def split_ranges_evenly(seed_ranges, per_core) do
     Enum.reduce(seed_ranges, [[]], fn range, [current_batch | batches] ->
       current_batch_size = Enum.map(current_batch, &Range.size/1) |> Enum.sum()
 
       if current_batch_size + Range.size(range) > per_core do
         first..last = range
         offset = per_core - current_batch_size
-        [[offset..last], [first..(offset-1) | current_batch] | batches]
+        [[offset..last], [first..(offset - 1) | current_batch] | batches]
       else
         [[range | current_batch] | batches]
       end
     end)
   end
 end
+```
+
+```elixir
+input = Advent.input(2023, 5) |> SeedMappings.parse()
+
+SeedRanges.from_seeds(input)
+|> BitSmarter.evenly_split_brute_force(input)
 ```
 
 But enough with the brute forcing! Splitting the ranges for the smaller batches gave an idea, though. But we can't treat the mapping as a unit the way `SeedToLocation.lookup_seed_location/2` does.
